@@ -1,0 +1,677 @@
+// SDK & SAAI Oefenapp
+const App = {
+  state: {
+    mode: 'practice',
+    questions: [],
+    currentIndex: 0,
+    answers: {},
+    results: {},
+    showFeedback: false,
+    progress: {},
+  },
+
+  getAllQuestions() {
+    return typeof ALL_QUESTIONS !== 'undefined' ? ALL_QUESTIONS : QUESTIONS;
+  },
+
+  init() {
+    this.loadProgress();
+    this.bindEvents();
+    this.renderHome();
+    this.initMermaid();
+  },
+
+  initMermaid() {
+    if (typeof mermaid !== 'undefined') {
+      mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose', class: { useMaxWidth: true } });
+    }
+  },
+
+  loadProgress() {
+    try {
+      const saved = localStorage.getItem('saai-progress');
+      if (saved) this.state.progress = JSON.parse(saved);
+    } catch (_) {}
+  },
+
+  saveProgress() {
+    localStorage.setItem('saai-progress', JSON.stringify(this.state.progress));
+  },
+
+  bindEvents() {
+    document.getElementById('btn-home').addEventListener('click', () => this.renderHome());
+    document.getElementById('btn-next').addEventListener('click', () => this.nextQuestion());
+    document.getElementById('btn-prev').addEventListener('click', () => this.prevQuestion());
+    document.getElementById('btn-check').addEventListener('click', () => this.checkAnswer());
+    document.getElementById('btn-skip').addEventListener('click', () => this.nextQuestion());
+  },
+
+  renderHome() {
+    const all = this.getAllQuestions();
+    const main = document.getElementById('main');
+    const answered = Object.keys(this.state.progress).length;
+    const avgScore = answered
+      ? Math.round(Object.values(this.state.progress).reduce((a, b) => a + b, 0) / answered)
+      : 0;
+    const examCount = typeof getExamQuestions === 'function' ? getExamQuestions().length : 0;
+    const openCount = typeof getOpenQuestions === 'function' ? getOpenQuestions().length : all.filter((q) => this.isOpenType(q.type)).length;
+    const mcqCount = all.length - openCount;
+
+    let categoryCards = '';
+    Object.entries(QUESTION_CATEGORIES).forEach(([key, cat]) => {
+      const count = all.filter((q) => q.category === key).length;
+      categoryCards += `
+        <button class="cat-card" data-cat="${key}" style="--accent:${cat.color}">
+          <span class="cat-label">${cat.label}</span>
+          <span class="cat-count">${count} vragen</span>
+        </button>`;
+    });
+
+    main.innerHTML = `
+      <section class="hero">
+        <h2>SDK & SAAI Toetstrainer</h2>
+        <p>7 vragen per ronde — 2 meerkeuze (0,5 pt), ADR 50%, rest open. Elke keer willekeurig uit de examenpool.</p>
+        <div class="stats">
+          <div class="stat"><span class="stat-num">${openCount}</span><span class="stat-label">open</span></div>
+          <div class="stat"><span class="stat-num">${mcqCount}</span><span class="stat-label">meerkeuze</span></div>
+          <div class="stat"><span class="stat-num">${answered}</span><span class="stat-label">geoefend</span></div>
+          <div class="stat"><span class="stat-num">${avgScore}%</span><span class="stat-label">gem. score</span></div>
+        </div>
+      </section>
+
+      <section class="modes">
+        <h3>Start oefenen</h3>
+        <div class="mode-grid">
+          <button class="mode-btn primary" id="btn-exam">
+            <strong>Examenmodus</strong>
+            <span>7 vragen — willekeurig, zelfde opbouw als toets</span>
+          </button>
+          <button class="mode-btn" id="btn-open">
+            <strong>Open vragen</strong>
+            <span>${openCount} open vragen — zoals de toets</span>
+          </button>
+          <button class="mode-btn" id="btn-adr">
+            <strong>ADR-oefening</strong>
+            <span>Alle legacy ADR-scenario's</span>
+          </button>
+          <button class="mode-btn" id="btn-all">
+            <strong>Alles incl. meerkeuze</strong>
+            <span>${all.length} vragen (oefen MC apart)</span>
+          </button>
+          <button class="mode-btn" id="btn-weak">
+            <strong>Zwakke punten</strong>
+            <span>Herhaal vragen onder 70%</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="categories">
+        <h3>Per onderwerp</h3>
+        <div class="cat-grid">${categoryCards}</div>
+      </section>
+
+      <section class="settings">
+        <h3>AI-beoordeling (optioneel)</h3>
+        <p class="hint">Inhoudelijke feedback op open vragen. Gemini free tier: max ~15 requests/min — app wacht 6 sec tussen calls. Bij 429: lokale checker als fallback.</p>
+        <div class="api-key-row">
+          <select id="api-provider" class="api-provider-select">
+            <option value="gemini" ${typeof AiGrader !== 'undefined' && AiGrader.getProvider() === 'gemini' ? 'selected' : ''}>Gemini</option>
+            <option value="openai" ${typeof AiGrader !== 'undefined' && AiGrader.getProvider() === 'openai' ? 'selected' : ''}>OpenAI</option>
+          </select>
+          <input type="password" id="api-key-input" class="api-key-input" placeholder="Gemini key (AIza...)" value="${typeof AiGrader !== 'undefined' ? AiGrader.getKey() : ''}">
+          <button class="mode-btn" id="btn-save-key">Opslaan</button>
+        </div>
+        <p class="hint" id="ai-status">${typeof AiGrader !== 'undefined' ? AiGrader.statusLabel() : 'Alleen lokale beoordeling'}</p>
+        <div class="api-test-row">
+          <button class="mode-btn primary" id="btn-test-api">Test API-verbinding</button>
+          <span class="hint">Stuurt 1 test-request — controleert of je key werkt</span>
+        </div>
+        <div id="api-test-result" class="api-test-result hidden"></div>
+      </section>
+    `;
+
+    document.getElementById('btn-exam').addEventListener('click', () => this.startMode('exam'));
+    document.getElementById('btn-open').addEventListener('click', () => this.startMode('open'));
+    document.getElementById('btn-adr').addEventListener('click', () => this.startCategory('adr'));
+    document.getElementById('btn-all').addEventListener('click', () => this.startMode('all'));
+    document.getElementById('btn-weak').addEventListener('click', () => this.startMode('weak'));
+    document.querySelectorAll('.cat-card').forEach((btn) => {
+      btn.addEventListener('click', () => this.startCategory(btn.dataset.cat));
+    });
+
+    const saveKeyBtn = document.getElementById('btn-save-key');
+    const providerSel = document.getElementById('api-provider');
+    const keyInput = document.getElementById('api-key-input');
+    if (providerSel && keyInput) {
+      providerSel.addEventListener('change', () => {
+        keyInput.placeholder = providerSel.value === 'gemini' ? 'Gemini key (AIza...)' : 'OpenAI key (sk-...)';
+      });
+    }
+    if (saveKeyBtn) {
+      saveKeyBtn.addEventListener('click', () => {
+        const val = keyInput.value;
+        if (typeof AiGrader !== 'undefined') {
+          AiGrader.saveProvider(providerSel.value);
+          AiGrader.saveKey(val);
+          document.getElementById('ai-status').textContent = AiGrader.statusLabel();
+        }
+      });
+    }
+
+    const testBtn = document.getElementById('btn-test-api');
+    if (testBtn) {
+      testBtn.addEventListener('click', () => this.testApiConnection());
+    }
+
+    document.getElementById('quiz-controls').classList.add('hidden');
+    document.getElementById('progress-bar').classList.add('hidden');
+  },
+
+  startMode(mode) {
+    const all = this.getAllQuestions();
+    let questions;
+    if (mode === 'exam') {
+      questions = typeof getExamQuestions === 'function' ? getExamQuestions() : [];
+    } else if (mode === 'open') {
+      questions = typeof getOpenQuestions === 'function' ? getOpenQuestions() : all.filter((q) => this.isOpenType(q.type));
+    } else if (mode === 'weak') {
+      questions = all.filter((q) => (this.state.progress[q.id] || 100) < 70);
+      if (!questions.length) { alert('Geen zwakke punten. Oefen eerst wat vragen.'); return; }
+    } else {
+      questions = [...all];
+    }
+    this.startQuiz(questions, mode);
+  },
+
+  startCategory(cat) {
+    this.startQuiz(this.getAllQuestions().filter((q) => q.category === cat), 'category');
+  },
+
+  startQuiz(questions, mode) {
+    this.state.mode = mode;
+    this.state.questions = questions;
+    this.state.currentIndex = 0;
+    this.state.answers = {};
+    this.state.results = {};
+    this.state.showFeedback = false;
+    document.getElementById('quiz-controls').classList.remove('hidden');
+    document.getElementById('progress-bar').classList.remove('hidden');
+    this.renderQuestion();
+  },
+
+  renderQuestion() {
+    const q = this.state.questions[this.state.currentIndex];
+    if (!q) return this.renderResults();
+
+    const cat = QUESTION_CATEGORIES[q.category];
+    const main = document.getElementById('main');
+    const progress = ((this.state.currentIndex + 1) / this.state.questions.length) * 100;
+    document.getElementById('progress-fill').style.width = `${progress}%`;
+    document.getElementById('progress-text').textContent =
+      `${this.state.currentIndex + 1} / ${this.state.questions.length}`;
+
+    const examBadge = q.examLabel
+      ? `<span class="exam-badge">${q.examLabel}${q.examWeight ? ` — ${String(q.examWeight).replace('.', ',')} pt` : ''}</span>`
+      : '';
+
+    let body = `
+      <div class="question-card">
+        <div class="q-meta">
+          <span class="q-cat" style="background:${cat.color}22;color:${cat.color}">${cat.label}</span>
+          <span class="q-type">${this.typeLabel(q.type)}</span>
+          ${examBadge}
+        </div>
+        ${q.examNote ? `<p class="exam-note">${this.escapeHtml(q.examNote)}</p>` : ''}
+        <h3 class="q-text">${this.escapeHtml(q.question).replace(/\n/g, '<br>')}</h3>
+    `;
+
+    if (q.code) body += `<pre class="code-block">${this.escapeHtml(q.code)}</pre>`;
+    if (q.codeContext) body += `<pre class="code-block context">${this.escapeHtml(q.codeContext)}</pre>`;
+    if (q.scenario) body += `<p class="scenario">${this.escapeHtml(q.scenario)}</p>`;
+    if (q.systemContext) {
+      body += `<details class="system-context" open>
+        <summary>Systeemcontext — lees dit eerst</summary>
+        <div class="system-context-body">${this.formatContext(q.systemContext)}</div>
+      </details>`;
+    }
+    if (q.uml) {
+      const umlLabel = q.type === 'adr-write' ? 'Huidige architectuur / koppeling' : '';
+      if (umlLabel) body += `<p class="uml-label">${umlLabel}</p>`;
+      body += `<div class="uml-wrap"><div class="mermaid">${q.uml}</div></div>`;
+    }
+
+    body += `<div class="answer-area" id="answer-area">${this.renderAnswerInput(q)}</div>`;
+
+    if (this.state.showFeedback && this.state.results[q.id]) {
+      body += this.renderFeedback(this.state.results[q.id], q);
+    }
+
+    body += '</div>';
+    main.innerHTML = body;
+    this.renderMermaid();
+    this.bindAnswerEvents(q);
+
+    document.getElementById('btn-prev').disabled = this.state.currentIndex === 0;
+    document.getElementById('btn-check').classList.toggle('hidden', this.isMcqType(q.type) && this.state.showFeedback);
+    document.getElementById('btn-next').textContent =
+      this.state.currentIndex === this.state.questions.length - 1 ? 'Resultaten' : 'Volgende';
+  },
+
+  typeLabel(type) {
+    const labels = {
+      mcq: 'Meerkeuze',
+      'code-analysis': 'Code-analyse',
+      'uml-relation': 'UML-relatie',
+      ordering: 'Volgorde',
+      text: 'Open vraag',
+      'open-identify': 'Open — smell + principe',
+      'open-write': 'Open vraag',
+      'open-multi': 'Open — deelvragen',
+      'adr-write': 'ADR schrijven',
+      'pseudocode-write': 'Pseudocode',
+      'factory-uml': 'Factory + UML',
+    };
+    return labels[type] || type;
+  },
+
+  isMcqType(type) {
+    return ['mcq', 'code-analysis', 'uml-relation', 'factory-uml'].includes(type);
+  },
+
+  isOpenType(type) {
+    return ['text', 'open-identify', 'open-write', 'adr-write', 'pseudocode-write', 'open-multi'].includes(type);
+  },
+
+  renderAnswerInput(q) {
+    const saved = this.state.answers[q.id];
+
+    if (q.type === 'mcq' || q.type === 'uml-relation' || q.type === 'factory-uml') {
+      return q.options.map((opt, i) => `
+        <label class="option ${saved === i ? 'selected' : ''}">
+          <input type="radio" name="answer" value="${i}" ${saved === i ? 'checked' : ''}>
+          <span>${this.escapeHtml(opt)}</span>
+        </label>`).join('');
+    }
+
+    if (q.type === 'code-analysis') {
+      const inputType = q.multi ? 'checkbox' : 'radio';
+      return q.options.map((opt, i) => {
+        const checked = Array.isArray(saved) ? saved.includes(i) : saved === i;
+        return `<label class="option ${checked ? 'selected' : ''}">
+          <input type="${inputType}" name="answer" value="${i}" ${checked ? 'checked' : ''}>
+          <span>${this.escapeHtml(opt)}</span>
+        </label>`;
+      }).join('');
+    }
+
+    if (q.type === 'ordering') {
+      const items = saved || [...q.items];
+      return `<p class="hint">Sorteer met pijltjes (boven = eerste laag)</p>
+        <ul class="sort-list" id="sort-list">
+          ${items.map((item, i) => `
+            <li><span class="sort-num">${i + 1}</span><span class="sort-label">${this.escapeHtml(item)}</span>
+              <button type="button" class="sort-up" data-i="${i}">▲</button>
+              <button type="button" class="sort-down" data-i="${i}">▼</button></li>`).join('')}
+        </ul>`;
+    }
+
+    if (q.type === 'open-multi') {
+      return (q.parts || []).map((part) => {
+        const partSaved = saved && saved[part.key] ? saved[part.key] : '';
+        const rows = part.type === 'adr-write' ? 12 : part.type === 'pseudocode-write' ? 10 : 5;
+        let partHtml = `<div class="part-block">
+          <div class="part-label">${this.escapeHtml(part.label)}</div>
+          <p class="part-q">${this.escapeHtml(part.question).replace(/\n/g, '<br>')}</p>`;
+        if (part.code) partHtml += `<pre class="code-block">${this.escapeHtml(part.code)}</pre>`;
+        partHtml += `<textarea class="text-answer part-answer" data-part="${part.key}" rows="${rows}"
+          placeholder="Antwoord ${part.label}...">${this.escapeHtml(partSaved)}</textarea></div>`;
+        return partHtml;
+      }).join('');
+    }
+
+    if (q.type === 'open-identify') {
+      return `<textarea class="text-answer" id="text-answer" rows="5"
+        placeholder="Noem de design smell en het principe...">${saved || ''}</textarea>
+        <p class="hint">Bijv.: "Smell: Fragility. Principe: Loose Coupling."</p>`;
+    }
+
+    if (q.type === 'open-write' || q.type === 'text') {
+      return `<textarea class="text-answer" id="text-answer" rows="7" placeholder="Typ je antwoord...">${saved || ''}</textarea>`;
+    }
+
+    if (q.type === 'adr-write') {
+      return `<div class="adr-template">
+          <button type="button" class="tpl-btn" id="insert-adr-template">Nygard template invoegen</button>
+          <span class="hint">Je ADR wordt nagekeken op format én of je oplossing past bij het legacy-probleem.</span>
+        </div>
+        <textarea class="text-answer adr-answer" id="text-answer" rows="18"
+          placeholder="Schrijf je Nygard ADR...">${saved || ''}</textarea>`;
+    }
+
+    if (q.type === 'pseudocode-write') {
+      return `<textarea class="text-answer code-answer" id="text-answer" rows="14" placeholder="Schrijf pseudocode...">${saved || ''}</textarea>`;
+    }
+
+    return '';
+  },
+
+  bindAnswerEvents(q) {
+    if (this.isMcqType(q.type)) {
+      document.querySelectorAll('.option input').forEach((input) => {
+        input.addEventListener('change', () => {
+          if (q.type === 'code-analysis' && q.multi) {
+            this.state.answers[q.id] = [...document.querySelectorAll('input:checked')].map((el) => +el.value);
+          } else {
+            this.state.answers[q.id] = +document.querySelector('input:checked')?.value;
+          }
+          document.querySelectorAll('.option').forEach((l) => l.classList.remove('selected'));
+          document.querySelectorAll('input:checked').forEach((el) => el.closest('.option')?.classList.add('selected'));
+          if (['mcq', 'uml-relation', 'factory-uml'].includes(q.type)) this.checkAnswer();
+        });
+      });
+    }
+
+    if (q.type === 'ordering') {
+      document.querySelectorAll('.sort-up').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = +btn.dataset.i;
+          const list = [...(this.state.answers[q.id] || q.items)];
+          if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; this.state.answers[q.id] = list; this.renderQuestion(); }
+        });
+      });
+      document.querySelectorAll('.sort-down').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = +btn.dataset.i;
+          const list = [...(this.state.answers[q.id] || q.items)];
+          if (i < list.length - 1) { [list[i], list[i + 1]] = [list[i + 1], list[i]]; this.renderQuestion(); }
+        });
+      });
+      if (!this.state.answers[q.id]) this.state.answers[q.id] = [...q.items];
+    }
+
+    if (q.type === 'open-multi') {
+      document.querySelectorAll('.part-answer').forEach((ta) => {
+        ta.addEventListener('input', () => {
+          if (!this.state.answers[q.id]) this.state.answers[q.id] = {};
+          this.state.answers[q.id][ta.dataset.part] = ta.value;
+        });
+      });
+    }
+
+    const textarea = document.getElementById('text-answer');
+    if (textarea) {
+      textarea.addEventListener('input', () => { this.state.answers[q.id] = textarea.value; });
+    }
+
+    const tplBtn = document.getElementById('insert-adr-template');
+    if (tplBtn) {
+      tplBtn.addEventListener('click', () => {
+        const tpl = `# [Titel]\n\n## Status\nProposed\n\n## Context\n[Probleem, legacy-situatie, overwogen alternatieven]\n\n## Decision\n[Concrete keuze]\n\n## Consequences\n+ [voordeel]\n- [nadeel]`;
+        textarea.value = tpl;
+        this.state.answers[q.id] = tpl;
+      });
+    }
+  },
+
+  getAnswer(q) {
+    if (q.type === 'ordering') return this.state.answers[q.id] || q.items;
+    if (q.type === 'open-multi') {
+      const ans = { ...(this.state.answers[q.id] || {}) };
+      document.querySelectorAll('.part-answer').forEach((ta) => { ans[ta.dataset.part] = ta.value; });
+      return ans;
+    }
+    if (this.isOpenType(q.type)) {
+      return document.getElementById('text-answer')?.value || this.state.answers[q.id] || '';
+    }
+    return this.state.answers[q.id];
+  },
+
+  async checkAnswer() {
+    const q = this.state.questions[this.state.currentIndex];
+    const answer = this.getAnswer(q);
+
+    if (q.type === 'open-multi') {
+      const empty = (q.parts || []).filter((p) => !(answer[p.key] || '').trim());
+      if (empty.length) { alert(`Vul alle deelvragen in (${empty.map((p) => p.label).join(', ')}).`); return; }
+    } else if (answer === undefined || answer === '' || (Array.isArray(answer) && !answer.length)) {
+      alert('Geef eerst een antwoord.'); return;
+    }
+
+    const btn = document.getElementById('btn-check');
+    const oldLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = typeof AiGrader !== 'undefined' && AiGrader.hasKey() && Grader.usesAiGrading(q)
+      ? 'AI beoordeelt...' : 'Bezig...';
+
+    try {
+      const result = await Grader.gradeAsync(q, answer);
+      this.state.results[q.id] = result;
+      this.state.showFeedback = true;
+      this.state.progress[q.id] = result.score;
+      this.saveProgress();
+      this.renderQuestion();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = oldLabel;
+    }
+  },
+
+  renderFeedback(result, q) {
+    const scoreClass = result.score >= 70 ? 'good' : result.score >= 50 ? 'warn' : 'bad';
+    let html = `<div class="feedback ${scoreClass}">
+      <div class="feedback-header">
+        <span class="score-badge">${result.score}%</span>
+        <span>${result.correct ? 'Voldoende' : 'Nog oefenen'}</span>
+      </div>`;
+
+    if (result.breakdown) {
+      html += `<p class="breakdown">${this.escapeHtml(result.breakdown)}</p>`;
+    }
+
+    html += `<ul>${result.feedback.map((f) => `<li>${this.escapeHtml(f)}</li>`).join('')}</ul>`;
+
+    if (result.partResults && q.parts) {
+      html += '<div class="part-results">';
+      q.parts.forEach((part) => {
+        const pr = result.partResults[part.key];
+        if (!pr) return;
+        const aiTag = pr.aiReviewed ? ' (AI)' : '';
+        html += `<details class="part-feedback-detail">
+          <summary>${part.label}: ${pr.score}%${aiTag}</summary>
+          <ul>${(pr.feedback || []).map((f) => `<li>${this.escapeHtml(f)}</li>`).join('')}</ul>
+          ${part.modelAnswer ? `<pre class="part-model">${this.escapeHtml(part.modelAnswer)}</pre>` : ''}
+        </details>`;
+      });
+      html += '</div>';
+    }
+
+    if (result.aiStyle) {
+      html += `<div class="ai-feedback"><strong>Beoordeling:</strong><pre>${this.escapeHtml(result.aiStyle)}</pre></div>`;
+    }
+
+    if (q.explain) html += `<p class="explain"><strong>Uitleg:</strong> ${this.escapeHtml(q.explain)}</p>`;
+    if (q.modelAnswer && result.score < 85) {
+      html += `<details class="model-answer"><summary>Modelantwoord</summary><pre>${this.escapeHtml(q.modelAnswer)}</pre></details>`;
+    }
+    if (q.uml && q.type === 'pseudocode-write' && result.score >= 50) {
+      html += `<div class="uml-wrap"><div class="mermaid">${q.uml}</div></div>`;
+    }
+    html += '</div>';
+    return html;
+  },
+
+  async renderMermaid() {
+    const nodes = document.querySelectorAll('.mermaid');
+    if (!nodes.length || typeof mermaid === 'undefined') return;
+    for (const node of nodes) {
+      try {
+        const id = 'mmd-' + Math.random().toString(36).slice(2);
+        const { svg } = await mermaid.render(id, node.textContent);
+        node.innerHTML = svg;
+      } catch (_) {
+        node.innerHTML = `<pre class="code-block">${node.textContent}</pre>`;
+      }
+    }
+  },
+
+  nextQuestion() {
+    if (this.state.currentIndex < this.state.questions.length - 1) {
+      this.state.currentIndex++;
+      this.state.showFeedback = false;
+      this.renderQuestion();
+    } else {
+      this.renderResults();
+    }
+  },
+
+  prevQuestion() {
+    if (this.state.currentIndex > 0) {
+      this.state.currentIndex--;
+      this.state.showFeedback = !!this.state.results[this.state.questions[this.state.currentIndex].id];
+      this.renderQuestion();
+    }
+  },
+
+  renderResults() {
+    const questions = this.state.questions;
+    const isExam = this.state.mode === 'exam';
+    let weightedSum = 0;
+    let totalWeight = 0;
+    let answered = 0;
+
+    questions.forEach((q) => {
+      const r = this.state.results[q.id];
+      const score = r ? r.score : (this.state.progress[q.id] || null);
+      if (score !== null) {
+        const w = q.examWeight || 1;
+        weightedSum += score * w;
+        totalWeight += w;
+        answered++;
+      }
+    });
+
+    const avg = totalWeight ? Math.round(weightedSum / totalWeight) : 0;
+
+    let adrSum = 0, adrWeight = 0, otherSum = 0, otherWeight = 0;
+    questions.forEach((q) => {
+      const r = this.state.results[q.id];
+      const score = r ? r.score : null;
+      if (score === null) return;
+      const w = q.examWeight || 1;
+      if (q.category === 'adr' || q.type === 'adr-write') {
+        adrSum += score * w; adrWeight += w;
+      } else {
+        otherSum += score * w; otherWeight += w;
+      }
+    });
+
+    const rows = questions.map((q) => {
+      const r = this.state.results[q.id];
+      const score = r ? r.score : '-';
+      const cat = QUESTION_CATEGORIES[q.category];
+      const label = q.examLabel || this.typeLabel(q.type);
+      const weight = q.examWeight ? ` (${String(q.examWeight).replace('.', ',')} pt)` : '';
+      return `<tr>
+        <td>${label}${weight}</td>
+        <td><span style="color:${cat.color}">${cat.label}</span></td>
+        <td class="score-cell ${r && r.score >= 70 ? 'pass' : 'fail'}">${score}${r ? '%' : ''}</td>
+      </tr>`;
+    }).join('');
+
+    const totalPts = typeof getExamTotalPoints === 'function' ? getExamTotalPoints() : totalWeight;
+    const mcqPts = questions.filter((q) => this.isMcqType(q.type)).reduce((s, q) => s + (q.examWeight || 0), 0);
+    const earnedPts = totalWeight ? (weightedSum / 100).toFixed(2) : '0';
+    const examExtra = isExam
+      ? `<p class="exam-breakdown">
+          Totaal: ${earnedPts} / ${totalPts} pt |
+          ADR: ${adrWeight ? Math.round(adrSum / adrWeight) : '-'}% (${Math.round(adrWeight / totalWeight * 100)}% gewicht) |
+          Meerkeuze samen: ${mcqPts} pt
+        </p>`
+      : '';
+
+    document.getElementById('main').innerHTML = `
+      <section class="results">
+        <h2>${isExam ? 'Examenresultaat' : 'Resultaten'}</h2>
+        <div class="result-score ${avg >= 55 ? 'pass' : 'fail'}">${avg}%</div>
+        <p>${answered} van ${questions.length} vragen beantwoord</p>
+        ${examExtra}
+        <table class="result-table">
+          <thead><tr><th>Vraag</th><th>Onderwerp</th><th>Score</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <button class="mode-btn primary" id="btn-retry">Opnieuw</button>
+        <button class="mode-btn" id="btn-home-result">Terug naar home</button>
+      </section>
+    `;
+
+    document.getElementById('btn-retry').addEventListener('click', () => this.startQuiz(questions, this.state.mode));
+    document.getElementById('btn-home-result').addEventListener('click', () => this.renderHome());
+    document.getElementById('quiz-controls').classList.add('hidden');
+    document.getElementById('progress-bar').classList.add('hidden');
+  },
+
+  escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  },
+
+  async testApiConnection() {
+    const providerSel = document.getElementById('api-provider');
+    const keyInput = document.getElementById('api-key-input');
+    const resultEl = document.getElementById('api-test-result');
+    const testBtn = document.getElementById('btn-test-api');
+
+    if (typeof AiGrader === 'undefined') {
+      alert('AI-module niet geladen.');
+      return;
+    }
+
+    const provider = providerSel?.value || 'gemini';
+    const key = keyInput?.value || '';
+
+    AiGrader.saveProvider(provider);
+    AiGrader.saveKey(key);
+
+    testBtn.disabled = true;
+    testBtn.textContent = 'Testen...';
+    resultEl.classList.remove('hidden', 'ok', 'fail');
+    resultEl.className = 'api-test-result';
+    resultEl.textContent = 'Verbinding testen...';
+
+    try {
+      const res = await AiGrader.testConnection(provider, key);
+      resultEl.classList.add('ok');
+      resultEl.innerHTML = `<strong>API werkt</strong> (${res.provider}, ${res.responseTime} ms)<br>${this.escapeHtml(res.message)}`;
+      document.getElementById('ai-status').textContent = AiGrader.statusLabel();
+    } catch (err) {
+      resultEl.classList.add('fail');
+      resultEl.innerHTML = `<strong>API mislukt</strong><br>${this.escapeHtml(err.message)}`;
+      if (err.isRateLimit) {
+        resultEl.innerHTML += '<br><br>Wacht 60 seconden en probeer opnieuw. Lokale beoordeling werkt altijd zonder API.';
+      }
+    } finally {
+      testBtn.disabled = false;
+      testBtn.textContent = 'Test API-verbinding';
+      resultEl.classList.remove('hidden');
+    }
+  },
+
+  formatContext(text) {
+    if (!text) return '';
+    return text
+      .split('\n')
+      .map((line) => {
+        const esc = this.escapeHtml(line);
+        if (line.startsWith('## ')) return `<h4>${esc.slice(3)}</h4>`;
+        if (line.startsWith('**') && line.endsWith('**')) return `<p><strong>${esc.slice(2, -2)}</strong></p>`;
+        if (line.startsWith('|')) return `<code class="ctx-line">${esc}</code>`;
+        if (line.startsWith('- ')) return `<li>${esc.slice(2)}</li>`;
+        if (line.trim() === '') return '';
+        return `<p>${esc}</p>`;
+      })
+      .join('');
+  },
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());

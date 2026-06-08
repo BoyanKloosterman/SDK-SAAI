@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDK & SAAI Toetstrainer</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <button id="btn-home" class="logo-btn">SDK & SAAI Toetstrainer</button>
+      <span class="header-sub">Design smells · ADR · Factory · UML · 4 lagen</span>
+    </div>
+    <div class="progress-bar hidden" id="progress-bar">
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <span class="progress-text" id="progress-text">0 / 0</span>
+    </div>
+  </header>
+
+  <main id="main" class="main"></main>
+
+  <footer class="quiz-controls hidden" id="quiz-controls">
+    <button id="btn-prev" class="ctrl-btn">Vorige</button>
+    <button id="btn-check" class="ctrl-btn primary">Controleer antwoord</button>
+    <button id="btn-skip" class="ctrl-btn ghost">Overslaan</button>
+    <button id="btn-next" class="ctrl-btn primary">Volgende</button>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/adr-context.js"></script>
+  <script src="js/questions-extra.js"></script>
+  <script src="js/grader.js"></script>
+  <script src="js/ai-grader.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

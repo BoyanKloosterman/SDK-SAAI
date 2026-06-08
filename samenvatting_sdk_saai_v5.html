@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Samenvatting SDK & SAAI</title>
+<style>
+:root {
+  --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
+  --text: #1a1a18; --text2: #5a5a56;
+  --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+  --tip-bg: #e6f1fb; --tip-border: #378add; --tip-text: #0c447c;
+  --warn-bg: #faeeda; --warn-border: #ef9f27; --warn-text: #633806;
+  --good-bg: #e1f5ee; --good-border: #1d9e75; --good-text: #085041;
+  --success: #085041; --danger: #791f1f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+    --text: #e8e6df; --text2: #9c9a92;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
+    --tip-bg: #042c53; --tip-border: #378add; --tip-text: #b5d4f4;
+    --warn-bg: #412402; --warn-border: #ef9f27; --warn-text: #fac775;
+    --good-bg: #04342c; --good-border: #1d9e75; --good-text: #9fe1cb;
+    --success: #9fe1cb; --danger: #f7c1c1;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);line-height:1.6;font-size:15px}
+.wrap{max-width:800px;margin:0 auto;padding:2rem 1.5rem 5rem}
+h1{font-size:26px;font-weight:700;color:var(--text);margin:0 0 6px}
+.sub{font-size:14px;color:var(--text2);margin-bottom:2rem}
+.nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:2.5rem}
+.nav a{font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);text-decoration:none;cursor:pointer;background:var(--bg2);transition:all .15s}
+.nav a:hover{background:var(--bg);color:var(--text)}
+.sec{margin-bottom:3rem}
+.sec-title{font-size:20px;font-weight:700;color:var(--text);border-left:4px solid;padding-left:12px;margin:0 0 1.2rem}
+.s1{border-color:#AFA9EC}.s2{border-color:#5DCAA5}.s3{border-color:#85B7EB}.s4{border-color:#EF9F27}.s5{border-color:#F0997B}.s6{border-color:#ED93B1}.s7{border-color:#97C459}.s8{border-color:#F87171}.s9{border-color:#60A5FA}
+.card{background:var(--bg2);border-radius:12px;padding:16px 18px;margin-bottom:12px;border:0.5px solid var(--border)}
+.card-title{font-size:15px;font-weight:700;color:var(--text);margin:0 0 6px}
+.card-body{font-size:14px;color:var(--text2);line-height:1.7;margin:0 0 8px}
+.explain{font-size:13px;color:var(--text2);background:var(--bg3);border-radius:8px;padding:10px 12px;margin:8px 0;line-height:1.6;border-left:3px solid var(--border2)}
+.explain b{color:var(--text)}
+.tag{display:inline-block;font-size:11px;font-weight:700;border-radius:4px;padding:3px 8px;margin:2px 2px 0 0}
+.tp{background:#26215C;color:#CECBF6}.tt{background:#04342C;color:#9FE1CB}.tb{background:#042C53;color:#B5D4F4}.ta{background:#412402;color:#FAC775}.tr{background:#501313;color:#F7C1C1}.tg{background:#173404;color:#C0DD97}
+code{font-family:'Courier New',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;color:var(--text)}
+.tip{background:var(--tip-bg);border-left:4px solid var(--tip-border);border-radius:0 10px 10px 0;padding:12px 16px;font-size:14px;color:var(--tip-text);margin:10px 0;line-height:1.6}
+.good{background:var(--good-bg);border-left:4px solid var(--good-border);border-radius:0 10px 10px 0;padding:12px 16px;font-size:14px;color:var(--good-text);margin:10px 0;line-height:1.6}
+.warn{background:var(--warn-bg);border-left:4px solid var(--warn-border);border-radius:0 10px 10px 0;padding:12px 16px;font-size:14px;color:var(--warn-text);margin:10px 0;line-height:1.6}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:540px){.two{grid-template-columns:1fr}}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{background:var(--bg3);font-weight:700;padding:9px 12px;text-align:left;color:var(--text);border-bottom:2px solid var(--border2)}
+table.t td{padding:8px 12px;color:var(--text2);border-bottom:0.5px solid var(--border);vertical-align:top;line-height:1.55}
+.dw{background:var(--bg);border-radius:10px;border:0.5px solid var(--border);padding:12px;margin:10px 0;overflow-x:auto}
+.divider{height:2px;background:var(--border2);margin:2.5rem 0;border-radius:2px}
+.inner{background:var(--bg3);border-radius:10px;padding:12px;border:0.5px solid var(--border)}
+.inner-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
+.inner-body{font-size:13px;color:var(--text2);line-height:1.6}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:center;margin:10px 0}
+.vs-mid{text-align:center;font-size:18px;font-weight:700;color:var(--text2);padding:0 12px}
+svg text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.emoji-title{font-size:22px;margin-right:6px}
+.stap{background:var(--bg3);border-radius:8px;padding:10px 14px;margin:6px 0;font-size:13px;color:var(--text2);display:flex;gap:10px;align-items:flex-start}
+.stap-num{background:var(--text);color:var(--bg);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>📚 Samenvatting SDK & SAAI</h1>
+<p class="sub">Alles wat je moet weten voor de toets — simpel uitgelegd.</p>
+
+<nav class="nav">
+  <a onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'})">1. UML</a>
+  <a onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'})">2. Design principes</a>
+  <a onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'})">3. Applicatiearchitectuur</a>
+  <a onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'})">4. Systeemarchitectuur</a>
+  <a onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'})">5. Messaging & Events</a>
+  <a onclick="document.getElementById('s6').scrollIntoView({behavior:'smooth'})">6. Applicatie-integratie</a>
+  <a onclick="document.getElementById('s7').scrollIntoView({behavior:'smooth'})">7. Snelle begrippen</a>
+  <a onclick="document.getElementById('s8').scrollIntoView({behavior:'smooth'})">8. Loose Coupling & Factory</a>
+  <a onclick="document.getElementById('s9').scrollIntoView({behavior:'smooth'})">9. Doorontwikkeling & Refactoring</a>
+  <a onclick="document.getElementById('s10').scrollIntoView({behavior:'smooth'})">10. Nygard ADR-template</a>
+  <a onclick="document.getElementById('s11').scrollIntoView({behavior:'smooth'})">11. Abstract Factory stap 2</a>
+  <a onclick="document.getElementById('s12').scrollIntoView({behavior:'smooth'})">12. Delivery Guarantees</a>
+  <a onclick="document.getElementById('s13').scrollIntoView({behavior:'smooth'})">13. Applicatielandschap</a>
+  <a onclick="document.getElementById('s14').scrollIntoView({behavior:'smooth'})">14. Referentiearchitectuur & DAO</a>
+  <a onclick="document.getElementById('s15').scrollIntoView({behavior:'smooth'})">15. RabbitMQ in detail</a>
+  <a onclick="document.getElementById('s16').scrollIntoView({behavior:'smooth'})">16. Thin vs Fat & Event-driven</a>
+  <a onclick="document.getElementById('s17').scrollIntoView({behavior:'smooth'})">17. Visualisaties & Realisatie</a>
+</nav>
+
+<!-- ===== 1. UML ===== -->
+<div class="sec" id="s1">
+<div class="sec-title s1">1. UML Klassendiagram</div>
+
+<div class="card">
+<div class="card-title">Wat is een klasse?</div>
+<div class="card-body">Een klasse is een <b>blauwdruk</b> voor objecten. In UML teken je hem als een rechthoek met drie vakjes.</div>
+<div class="dw"><svg width="100%" viewBox="0 0 500 140">
+<rect x="100" y="10" width="300" height="120" rx="6" fill="none" stroke="#AFA9EC" stroke-width="1"/>
+<line x1="100" y1="42" x2="400" y2="42" stroke="#AFA9EC" stroke-width="0.8"/>
+<line x1="100" y1="74" x2="400" y2="74" stroke="#AFA9EC" stroke-width="0.8"/>
+<text x="250" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#AFA9EC">Naam van de klasse</text>
+<text x="112" y="61" font-size="13" fill="#9c9a92">- naam : String  (attributen = eigenschappen)</text>
+<text x="112" y="92" font-size="13" fill="#9c9a92">+ getNaam() : String  (methoden = acties)</text>
+<text x="112" y="113" font-size="13" fill="#9c9a92">+ spreek() : void</text>
+</svg></div>
+<div class="explain">
+  <b>- (min)</b> = private → alleen de klasse zelf mag erbij.<br>
+  <b>+ (plus)</b> = public → iedereen mag erbij.<br>
+  <b># (hekje)</b> = protected → alleen de klasse en subklassen mogen erbij.
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">De 6 UML-relaties — het grote overzicht</div>
+<div class="card-body">Welk lijntje gebruik je voor welke relatie? Dit is het meest gevraagde op de toets.</div>
+<div class="dw"><svg width="100%" viewBox="0 0 680 420">
+<defs>
+<marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#9c9a92" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="tri" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="9" markerHeight="9" orient="auto"><polygon points="1,1 13,7 1,13" fill="#1c1c1a" stroke="#e8e6df" stroke-width="1.2"/></marker>
+</defs>
+
+<text x="10" y="22" font-size="13" font-weight="700" fill="#e8e6df">1. Inheritance (extends) — overerving</text>
+<text x="10" y="40" font-size="12" fill="#9c9a92">Dog IS EEN Animal. Dog erft alles van Animal.</text>
+<rect x="290" y="8" width="90" height="36" rx="4" fill="none" stroke="#85B7EB" stroke-width="1"/>
+<text x="335" y="30" text-anchor="middle" font-size="13" fill="#85B7EB">Animal</text>
+<rect x="460" y="8" width="80" height="36" rx="4" fill="none" stroke="#85B7EB" stroke-width="1"/>
+<text x="500" y="30" text-anchor="middle" font-size="13" fill="#85B7EB">Dog</text>
+<line x1="460" y1="26" x2="382" y2="26" stroke="#e8e6df" stroke-width="1.2" marker-end="url(#tri)"/>
+
+<text x="10" y="82" font-size="13" font-weight="700" fill="#e8e6df">2. Interface (implements) — afspraak nakomen</text>
+<text x="10" y="100" font-size="12" fill="#9c9a92">Cat VOERT UIT wat IFeedable vraagt. Stippellijn!</text>
+<rect x="290" y="68" width="90" height="46" rx="4" fill="none" stroke="#AFA9EC" stroke-width="1"/>
+<text x="335" y="84" text-anchor="middle" font-size="11" fill="#AFA9EC">«interface»</text>
+<text x="335" y="101" text-anchor="middle" font-size="13" fill="#AFA9EC">IFeedable</text>
+<rect x="460" y="76" width="80" height="36" rx="4" fill="none" stroke="#AFA9EC" stroke-width="1"/>
+<text x="500" y="98" text-anchor="middle" font-size="13" fill="#AFA9EC">Cat</text>
+<line x1="460" y1="94" x2="382" y2="94" stroke="#9c9a92" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#tri)"/>
+
+<text x="10" y="148" font-size="13" font-weight="700" fill="#e8e6df">3. Compositie ◆ — onlosmakelijk verbonden</text>
+<text x="10" y="166" font-size="12" fill="#9c9a92">OrderItem BESTAAT NIET zonder Order. Gevulde ruit.</text>
+<rect x="290" y="136" width="90" height="36" rx="4" fill="none" stroke="#F0997B" stroke-width="1"/>
+<text x="335" y="158" text-anchor="middle" font-size="13" fill="#F0997B">Order</text>
+<rect x="460" y="136" width="110" height="36" rx="4" fill="none" stroke="#F0997B" stroke-width="1"/>
+<text x="515" y="158" text-anchor="middle" font-size="13" fill="#F0997B">OrderItem</text>
+<line x1="380" y1="154" x2="458" y2="154" stroke="#e8e6df" stroke-width="1.2"/>
+<polygon points="380,154 368,148 356,154 368,160" fill="#e8e6df"/>
+<text x="390" y="147" font-size="11" fill="#9c9a92">1</text>
+<text x="448" y="147" font-size="11" fill="#9c9a92">1..*</text>
+
+<text x="10" y="216" font-size="13" font-weight="700" fill="#e8e6df">4. Aggregatie ◇ — onderdeel van, maar kan los</text>
+<text x="10" y="234" font-size="12" fill="#9c9a92">Player KAN WEL los van Team bestaan. Open ruit.</text>
+<rect x="290" y="204" width="90" height="36" rx="4" fill="none" stroke="#EF9F27" stroke-width="1"/>
+<text x="335" y="226" text-anchor="middle" font-size="13" fill="#EF9F27">Team</text>
+<rect x="460" y="204" width="90" height="36" rx="4" fill="none" stroke="#EF9F27" stroke-width="1"/>
+<text x="505" y="226" text-anchor="middle" font-size="13" fill="#EF9F27">Player</text>
+<line x1="380" y1="222" x2="458" y2="222" stroke="#e8e6df" stroke-width="1.2"/>
+<polygon points="380,222 368,216 356,222 368,228" fill="#1c1c1a" stroke="#e8e6df" stroke-width="1.2"/>
+
+<text x="10" y="282" font-size="13" font-weight="700" fill="#e8e6df">5. Dependency (- - →) — tijdelijk gebruik</text>
+<text x="10" y="300" font-size="12" fill="#9c9a92">Game GEBRUIKT Dice alleen in een methode. Stippellijn + pijl.</text>
+<rect x="290" y="270" width="90" height="36" rx="4" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="335" y="292" text-anchor="middle" font-size="13" fill="#5DCAA5">Game</text>
+<rect x="460" y="270" width="80" height="36" rx="4" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="500" y="292" text-anchor="middle" font-size="13" fill="#5DCAA5">Dice</text>
+<line x1="380" y1="288" x2="458" y2="288" stroke="#9c9a92" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#ar)"/>
+
+<text x="10" y="348" font-size="13" font-weight="700" fill="#e8e6df">6. Associatie (→) — referentie opgeslagen</text>
+<text x="10" y="366" font-size="12" fill="#9c9a92">Student HEEFT een attribuut dat verwijst naar Course.</text>
+<rect x="290" y="336" width="90" height="36" rx="4" fill="none" stroke="#B4B2A9" stroke-width="1"/>
+<text x="335" y="358" text-anchor="middle" font-size="13" fill="#B4B2A9">Student</text>
+<rect x="460" y="336" width="90" height="36" rx="4" fill="none" stroke="#B4B2A9" stroke-width="1"/>
+<text x="505" y="358" text-anchor="middle" font-size="13" fill="#B4B2A9">Course</text>
+<line x1="380" y1="354" x2="458" y2="354" stroke="#9c9a92" stroke-width="1.2" marker-end="url(#ar)"/>
+</svg></div>
+<div class="tip">🔑 <b>Ezelsbruggetje compositie vs aggregatie:</b> Stel jezelf de vraag — "Als de parent verdwijnt, verdwijnt de child dan ook?" Ja → compositie ◆. Nee → aggregatie ◇.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Hoe kies je de juiste relatie bij een casus?</div>
+<div class="explain"><b>Stap 1:</b> Lees de zin. "Een Order heeft OrderItems." → Order en OrderItem.<br>
+<b>Stap 2:</b> Kan een OrderItem bestaan zonder Order? Nee → <b>compositie ◆</b>.<br>
+<b>Stap 3:</b> Kan een Speler bestaan zonder Team? Ja → <b>aggregatie ◇</b>.<br>
+<b>Stap 4:</b> Verwijst klasse A naar klasse B als attribuut, maar ze leven onafhankelijk? → <b>associatie →</b>.</div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 2. DESIGN ===== -->
+<div class="sec" id="s2">
+<div class="sec-title s2">2. Design principes & Design Smells</div>
+
+<div class="card">
+<div class="card-title">SRP — Single Responsibility Principle</div>
+<div class="card-body">Elke klasse heeft maar <b>één taak</b> en dus maar één reden om te veranderen.</div>
+<div class="explain"><b>Voorbeeld fout:</b> <code>UserManager</code> maakt gebruikers aan, stuurt mails én slaat op in de database. Dat zijn drie taken → drie klassen!<br><br>
+<b>Voorbeeld goed:</b> <code>UserService</code> (aanmaken), <code>EmailService</code> (mailen), <code>UserRepository</code> (opslaan).</div>
+<span class="tag tp">S in SOLID</span>
+</div>
+
+<div class="card">
+<div class="card-title">OCP — Open/Closed Principle</div>
+<div class="card-body">Een klasse moet <b>open zijn voor uitbreiding</b>, maar <b>gesloten voor aanpassing</b>. Dus: nieuwe functionaliteit toevoegen zonder bestaande code te veranderen.</div>
+<div class="explain"><b>Voorbeeld fout:</b><br>
+<code>if shape == "Circle" → drawCircle()</code><br>
+<code>if shape == "Square" → drawSquare()</code><br>
+Als je een nieuw shape wilt, moet je deze methode aanpassen. Dat is slecht!<br><br>
+<b>Voorbeeld goed:</b> Maak een interface <code>IShape</code> met een <code>draw()</code> methode. Elke shape (<code>Circle</code>, <code>Square</code>) implementeert die zelf. Nieuw shape? Gewoon een nieuwe klasse toevoegen, niets aanpassen.</div>
+<span class="tag tp">O in SOLID</span>
+</div>
+
+<div class="card">
+<div class="card-title">Loose Coupling — los van elkaar</div>
+<div class="card-body">Een klasse is <b>niet afhankelijk van een concrete klasse</b>, maar van een <b>interface</b>. Zo kun je makkelijk wisselen van implementatie.</div>
+<div class="dw"><svg width="100%" viewBox="0 0 680 210">
+<defs>
+<marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#F09595" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="ar2g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5DCAA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="tri2" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="9" markerHeight="9" orient="auto"><polygon points="1,1 13,7 1,13" fill="#1c1c1a" stroke="#5DCAA5" stroke-width="1.2"/></marker>
+</defs>
+<text x="10" y="22" font-size="12" font-weight="700" fill="#F09595">❌ SLECHT: tight coupling — OrderService weet exact welke database gebruikt wordt</text>
+<rect x="10" y="30" width="140" height="36" rx="4" fill="none" stroke="#F09595" stroke-width="1"/>
+<text x="80" y="52" text-anchor="middle" font-size="13" fill="#F09595">OrderService</text>
+<rect x="230" y="30" width="160" height="36" rx="4" fill="none" stroke="#F09595" stroke-width="1"/>
+<text x="310" y="52" text-anchor="middle" font-size="13" fill="#F09595">MySqlOrderDAO</text>
+<line x1="152" y1="48" x2="228" y2="48" stroke="#F09595" stroke-width="1.2" marker-end="url(#ar2)"/>
+<text x="190" y="41" text-anchor="middle" font-size="10" fill="#F09595">direct afhankelijk</text>
+
+<text x="10" y="108" font-size="12" font-weight="700" fill="#5DCAA5">✅ GOED: loose coupling — OrderService weet alleen van de interface, niet welke database</text>
+<rect x="10" y="116" width="140" height="36" rx="4" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="80" y="138" text-anchor="middle" font-size="13" fill="#5DCAA5">OrderService</text>
+<rect x="220" y="100" width="130" height="46" rx="4" fill="none" stroke="#AFA9EC" stroke-width="1"/>
+<text x="285" y="118" text-anchor="middle" font-size="11" fill="#AFA9EC">«interface»</text>
+<text x="285" y="134" text-anchor="middle" font-size="13" fill="#AFA9EC">IOrderDAO</text>
+<rect x="430" y="96" width="140" height="36" rx="4" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="500" y="118" text-anchor="middle" font-size="13" fill="#5DCAA5">MySqlOrderDAO</text>
+<rect x="430" y="148" width="140" height="36" rx="4" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="500" y="170" text-anchor="middle" font-size="13" fill="#5DCAA5">XmlOrderDAO</text>
+<line x1="152" y1="134" x2="218" y2="126" stroke="#5DCAA5" stroke-width="1.2" stroke-dasharray="5 3" marker-end="url(#tri2)"/>
+<line x1="352" y1="118" x2="428" y2="114" stroke="#5DCAA5" stroke-width="1.2" marker-end="url(#ar2g)"/>
+<line x1="352" y1="126" x2="428" y2="160" stroke="#5DCAA5" stroke-width="1.2" marker-end="url(#ar2g)"/>
+</svg></div>
+<div class="explain"><b>Waarom is dit handig?</b> Stel je wil van MySQL naar XML overstappen. Bij tight coupling moet je <code>OrderService</code> aanpassen. Bij loose coupling hoef je alleen een nieuwe implementatie te maken — <code>OrderService</code> blijft onveranderd.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Design for Change — bouw voor de toekomst</div>
+<div class="card-body">Software verandert altijd. Als je niet nadenkt over uitbreidbaarheid, wordt aanpassen steeds moeilijker en sterft je software langzaam.</div>
+<div class="explain"><b>Simpel gezegd:</b> Schrijf code alsof je over een jaar een nieuwe collega hebt die er iets aan moet aanpassen. Begrijpt die het nog? Kan die het makkelijk uitbreiden?</div>
+<span class="tag tt">Onderhoud</span><span class="tag tt">Uitbreidbaarheid</span>
+</div>
+
+<div class="card">
+<div class="card-title">Design Smells — 4 tekens dat je code stinkt</div>
+<div class="card-body">Als je een van deze herkent in je code, is er iets mis.</div>
+<table class="t">
+<tr><th>Smell</th><th>Wat is het?</th><th>Hoe herken je het?</th></tr>
+<tr><td><b>Rigidity</b><br><span style="font-size:11px;color:var(--text2)">starheid</span></td><td>Eén kleine aanpassing heeft een enorme domino-effect</td><td>Je wil één ding veranderen maar moet daarvoor 10 bestanden aanpassen</td></tr>
+<tr><td><b>Fragility</b><br><span style="font-size:11px;color:var(--text2)">breekbaarheid</span></td><td>Je past iets aan op plek A en plek B, C en D crashen</td><td>Je hernoemt een variabele en plotseling crashen 5 schermen die je nooit hebt aangeraakt</td></tr>
+<tr><td><b>Complexity</b><br><span style="font-size:11px;color:var(--text2)">te complex</span></td><td>Methoden zijn veel te lang, te veel logica op één plek</td><td>Een methode van 200 regels met 15 if-statements</td></tr>
+<tr><td><b>Opacity</b><br><span style="font-size:11px;color:var(--text2)">ondoorzichtig</span></td><td>Code is bijna onmogelijk te begrijpen</td><td>Variabelen heten <code>x</code>, <code>tmp2</code>, <code>zzz123</code></td></tr>
+</table>
+</div>
+
+<div class="card">
+<div class="card-title">Design Goals — wat wil je bereiken?</div>
+<div class="card-body">Niet alle doelen kunnen tegelijk. Veiligheid maakt software soms langzamer. Snelheid kan ten koste gaan van leesbaarheid. Je maakt altijd keuzes.</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+<span class="tag tt">Modifiability</span><span class="tag tt">Extensibility</span><span class="tag tt">Reusability</span><span class="tag tt">Testability</span><span class="tag tb">Security</span><span class="tag ta">Efficiency</span>
+</div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 3. APPLICATIEARCHITECTUUR ===== -->
+<div class="sec" id="s3">
+<div class="sec-title s3">3. Applicatiearchitectuur & Domeinmodel</div>
+
+<div class="card">
+<div class="card-title">Design vs Architectuur — wat is het verschil?</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">🔧 Design</div>
+  <div class="inner-body">Hoe bouw je één klasse of methode? Dichter bij de code. Details zoals welke klassen er zijn en hoe ze samenwerken.</div>
+</div>
+<div class="inner">
+  <div class="inner-title">🏗️ Architectuur</div>
+  <div class="inner-body">Hoe is het <i>hele systeem</i> opgebouwd? Groter plaatje. Opdeling in subsystemen, lagen en modules.</div>
+</div>
+</div>
+<div class="explain"><b>Makkelijk onthouden:</b> Design = je denkt aan één kamer inrichten. Architectuur = je denkt aan hoe het hele huis is gebouwd.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Drie lagen van een applicatie</div>
+<div class="card-body">Elke applicatie heeft drie verantwoordelijkheden. Die stop je in aparte lagen.</div>
+<div class="dw"><svg width="100%" viewBox="0 0 600 180">
+<rect x="60" y="10" width="480" height="46" rx="8" fill="none" stroke="#85B7EB" stroke-width="1.2"/>
+<text x="300" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#85B7EB">1. Presentation</text>
+<text x="300" y="46" text-anchor="middle" font-size="12" fill="#85B7EB">Wat de gebruiker ziet — knoppen, schermen, formulieren</text>
+<rect x="60" y="66" width="480" height="46" rx="8" fill="none" stroke="#AFA9EC" stroke-width="1.2"/>
+<text x="300" y="84" text-anchor="middle" font-size="14" font-weight="700" fill="#AFA9EC">2. Domain (het domeinmodel)</text>
+<text x="300" y="102" text-anchor="middle" font-size="12" fill="#AFA9EC">De bedrijfslogica — het hart van de app</text>
+<rect x="60" y="122" width="480" height="46" rx="8" fill="none" stroke="#5DCAA5" stroke-width="1.2"/>
+<text x="300" y="140" text-anchor="middle" font-size="14" font-weight="700" fill="#5DCAA5">3. Data source / Data storage</text>
+<text x="300" y="158" text-anchor="middle" font-size="12" fill="#5DCAA5">Database, bestandsopslag, externe API</text>
+</svg></div>
+<div class="explain"><b>Voorbeeld:</b> Een webshop. Presentation = de website die je ziet. Domain = de regels: "je kunt niet meer bestellen dan er op voorraad is." Data source = de database met producten en bestellingen.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Domeinmodel — het hart van de app</div>
+<div class="card-body">Het domeinmodel beschrijft de <b>essentiële objecten en regels</b> van de wereld waarvoor je bouwt. Je modelleert het als een UML klassendiagram.</div>
+<div class="explain"><b>Voorbeeld:</b> Bouw je een bibliotheekapp? Dan is het domeinmodel: Boek, Lid, Exemplaar, Uitlening — en de regels daartussen (een lid mag max. 5 boeken lenen, etc.).</div>
+</div>
+
+<div class="card">
+<div class="card-title">Technical vs Domain partitioning</div>
+<div class="card-body">Hoe organiseer je je mappen/packages? Er zijn twee manieren.</div>
+<div class="dw"><svg width="100%" viewBox="0 0 600 190">
+<text x="140" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#e8e6df">Technical</text>
+<text x="140" y="36" text-anchor="middle" font-size="11" fill="#9c9a92">Indeling per laag</text>
+<rect x="40" y="44" width="200" height="32" rx="4" fill="none" stroke="#85B7EB" stroke-width="1"/>
+<text x="140" y="64" text-anchor="middle" font-size="13" fill="#85B7EB">📁 controllers/</text>
+<rect x="40" y="84" width="200" height="32" rx="4" fill="none" stroke="#85B7EB" stroke-width="1"/>
+<text x="140" y="104" text-anchor="middle" font-size="13" fill="#85B7EB">📁 services/</text>
+<rect x="40" y="124" width="200" height="32" rx="4" fill="none" stroke="#85B7EB" stroke-width="1"/>
+<text x="140" y="144" text-anchor="middle" font-size="13" fill="#85B7EB">📁 repositories/</text>
+<text x="140" y="172" text-anchor="middle" font-size="11" fill="#9c9a92">Alles door elkaar per laag</text>
+
+<text x="440" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#e8e6df">Domain</text>
+<text x="440" y="36" text-anchor="middle" font-size="11" fill="#9c9a92">Indeling per functie</text>
+<rect x="310" y="44" width="260" height="32" rx="4" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="440" y="64" text-anchor="middle" font-size="13" fill="#5DCAA5">📁 orders/</text>
+<rect x="310" y="84" width="260" height="32" rx="4" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="440" y="104" text-anchor="middle" font-size="13" fill="#5DCAA5">📁 checkout/</text>
+<rect x="310" y="124" width="260" height="32" rx="4" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="440" y="144" text-anchor="middle" font-size="13" fill="#5DCAA5">📁 inventory/</text>
+<text x="440" y="172" text-anchor="middle" font-size="11" fill="#9c9a92">Alles bij elkaar per feature</text>
+</svg></div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 4. SYSTEEMARCHITECTUUR ===== -->
+<div class="sec" id="s4">
+<div class="sec-title s4">4. Systeemarchitectuur & Analyse</div>
+
+<div class="card">
+<div class="card-title">Applicatie- vs systeemarchitectuur</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">📱 Applicatiearchitectuur</div>
+  <div class="inner-body">Hoe is <i>één applicatie</i> van binnen opgebouwd? Lagen, modules, klassen. Voorbeeld: een webshop-app met presentation, domain en data-laag.</div>
+</div>
+<div class="inner">
+  <div class="inner-title">🌐 Systeemarchitectuur</div>
+  <div class="inner-body">Hoe werken <i>meerdere systemen</i> samen? Voorbeeld: een webshop-systeem met een frontend, backend, betaalsysteem en database die via APIs communiceren.</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Architectuuranalyse — waarom moet je dit doen?</div>
+<div class="card-body">Voordat je iets bouwt of aanpast in een bestaand systeem, moet je het systeem begrijpen.</div>
+<div class="warn">⚠️ Als je dit overslaat: je schrijft code die al bestaat, je breekt dingen die al werkten, en je maakt keuzes die eerder al zijn afgewezen.</div>
+<div class="explain"><b>In de praktijk:</b> Op school bouw je een app vanaf nul. Op stage of bij een bedrijf stap je bijna altijd in een <i>bestaand systeem</i> dat al jaren loopt. Je moet dit eerst begrijpen voordat je iets aanpast.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Hoe analyseer je een bestaand systeem?</div>
+<div class="stap"><div class="stap-num">1</div><div><b>Documentatie lezen</b> — README, wiki, changelogs, ADRs</div></div>
+<div class="stap"><div class="stap-num">2</div><div><b>Code analyseren</b> — Mappen, packages en folders bekijken. Wat zit waar?</div></div>
+<div class="stap"><div class="stap-num">3</div><div><b>Vragen stellen</b> — Aan een senior engineer of architect. "Waarom is dit zo gebouwd?"</div></div>
+<div class="stap"><div class="stap-num">4</div><div><b>CI/CD bekijken</b> — Hoe wordt het systeem gebouwd en uitgerold?</div></div>
+<div class="stap"><div class="stap-num">5</div><div><b>DeepWiki (AI)</b> — Genereert automatisch documentatie van een publieke GitHub-repo</div></div>
+</div>
+
+<div class="card">
+<div class="card-title">ADR — Architectural Decision Record</div>
+<div class="card-body">Een ADR is een <b>kort document</b> waarin je een architectuurkeuze vastlegt — inclusief de reden en de alternatieven die je hebt overwogen.</div>
+<div class="explain"><b>Waarom?</b> Goede code laat zien <i>wat</i> er gebeurt, maar niet <i>waarom</i> die keuze is gemaakt. Met een ADR snap je over 2 jaar nog waarom je voor MySQL koos en niet voor MongoDB.<br><br>
+<b>Een ADR bevat:</b> Wat is de keuze? Waarom? Welke alternatieven waren er? Wat zijn de gevolgen?</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+<span class="tag tb">Beslissing</span><span class="tag tb">Reden</span><span class="tag tb">Alternatieven</span><span class="tag tb">Gevolgen</span>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Goede architectuurvisualisatie</div>
+<div class="card-body">Een goed diagram is niet per se een compleet diagram. Het gaat erom dat het <i>inzicht geeft</i>.</div>
+<div class="two" style="margin-top:8px">
+<div class="inner"><div class="inner-title">✅ Precies genoeg</div><div class="inner-body">Niet elke klasse tekenen. Alleen wat er architecturaal toe doet — de grote lijnen.</div></div>
+<div class="inner"><div class="inner-title">✅ Voor de juiste persoon</div><div class="inner-body">Een diagram voor een engineer ziet er anders uit dan eentje voor een opdrachtgever.</div></div>
+</div>
+<table class="t" style="margin-top:10px">
+<tr><th>Als je wil weten…</th><th>Gebruik je…</th></tr>
+<tr><td>Wat gebeurt er als X plaatsvindt?</td><td>Data Flow Diagram of sequentiediagram</td></tr>
+<tr><td>Hoe is het systeem opgebouwd?</td><td>C4 model, 4+1 model, UML component diagram</td></tr>
+<tr><td>Hoe ziet het netwerk eruit?</td><td>Applicatielandschap / systeemlandschap</td></tr>
+</table>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 5. MESSAGING ===== -->
+<div class="sec" id="s5">
+<div class="sec-title s5">5. Messaging, Events & Communicatie</div>
+
+<div class="card">
+<div class="card-title">Synchroon vs asynchroon — het grote verschil</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">📞 Synchroon</div>
+  <div class="inner-body">A belt B op en wacht totdat B opneemt en antwoordt. Als B niet bereikbaar is, mislukt de hele operatie.<br><br><b>Voorbeeld:</b> REST API call — je wacht op het antwoord voordat je verder gaat.</div>
+</div>
+<div class="inner">
+  <div class="inner-title">📬 Asynchroon</div>
+  <div class="inner-body">A stopt een berichtje in de brievenbus en gaat verder. B leest het wanneer die er klaar voor is.<br><br><b>Voorbeeld:</b> Message in een queue sturen — je hoeft niet te wachten op een antwoord.</div>
+</div>
+</div>
+<div class="explain"><b>Wanneer kies je asynchroon?</b> Als systemen niet altijd tegelijk online zijn, als een taak lang duurt, of als meerdere systemen moeten reageren op één gebeurtenis.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Message vs Event — wat is het verschil?</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">✉️ Message</div>
+  <div class="inner-body">Een <b>gerichte opdracht</b> van A naar B. A verwacht dat B iets doet.<br><br><i>"Verwerk deze betaling."</i></div>
+</div>
+<div class="inner">
+  <div class="inner-title">📢 Event</div>
+  <div class="inner-body">Een <b>aankondiging</b> dat er iets is gebeurd. Niemand hoeft er per se op te reageren.<br><br><i>"De betaling is verwerkt."</i></div>
+</div>
+</div>
+<div class="explain"><b>Ezelsbruggetje:</b> Message = toekomst (er moet iets <i>gaan</i> gebeuren). Event = verleden (er <i>is iets</i> gebeurd).</div>
+</div>
+
+<div class="card">
+<div class="card-title">Queue — de wachtrij</div>
+<div class="card-body">Een queue is een <b>wachtrij voor berichten</b>. Berichten gaan er in (FIFO = eerst in, eerst eruit) en consumers lezen ze op hun eigen tempo.</div>
+<div class="dw"><svg width="100%" viewBox="0 0 620 110">
+<defs><marker id="ar3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect x="10" y="35" width="110" height="40" rx="8" fill="none" stroke="#EF9F27" stroke-width="1"/>
+<text x="65" y="52" text-anchor="middle" font-size="12" font-weight="700" fill="#EF9F27">Producer</text>
+<text x="65" y="67" text-anchor="middle" font-size="11" fill="#BA7517">stuurt bericht</text>
+<line x1="122" y1="55" x2="158" y2="55" stroke="#EF9F27" stroke-width="1.5" marker-end="url(#ar3)"/>
+<rect x="160" y="20" width="180" height="70" rx="8" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="250" y="48" text-anchor="middle" font-size="13" font-weight="700" fill="#EF9F27">📬 QUEUE</text>
+<text x="250" y="66" text-anchor="middle" font-size="11" fill="#BA7517">berichten wachten hier</text>
+<text x="250" y="82" text-anchor="middle" font-size="10" fill="#BA7517">ook als consumer offline is</text>
+<line x1="342" y1="55" x2="378" y2="55" stroke="#EF9F27" stroke-width="1.5" marker-end="url(#ar3)"/>
+<rect x="380" y="35" width="110" height="40" rx="8" fill="none" stroke="#EF9F27" stroke-width="1"/>
+<text x="435" y="52" text-anchor="middle" font-size="12" font-weight="700" fill="#EF9F27">Consumer</text>
+<text x="435" y="67" text-anchor="middle" font-size="11" fill="#BA7517">leest wanneer klaar</text>
+</svg></div>
+<div class="good">✅ <b>Voordeel:</b> Als de Consumer even offline is, gaan de berichten niet verloren. Ze wachten gewoon in de queue totdat hij er klaar voor is.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Temporal & Behavioral Coupling</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">⏰ Temporal coupling</div>
+  <div class="inner-body"><b>Probleem:</b> A en B moeten tegelijk online zijn om te communiceren.<br><br><b>Oplossing:</b> Queue — A stuurt het bericht, de queue bewaart het, B leest het later.</div>
+</div>
+<div class="inner">
+  <div class="inner-title">🔗 Behavioral coupling</div>
+  <div class="inner-body"><b>Probleem:</b> A weet precies wat B doet en verwacht een specifieke reactie.<br><br><b>Oplossing:</b> Events — A roept alleen "dit is gebeurd", B beslist zelf wat te doen.</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Opbouw van een message</div>
+<table class="t">
+<tr><th>Onderdeel</th><th>Simpel uitgelegd</th><th>Voorbeeld</th></tr>
+<tr><td><b>Headers</b></td><td>Metadata over het bericht — wie stuurde het, wanneer, wat voor type?</td><td>eventId, timestamp, source</td></tr>
+<tr><td><b>Routing</b></td><td>Waar moet het bericht naartoe?</td><td>exchange, routing key</td></tr>
+<tr><td><b>Properties</b></td><td>Instellingen voor de queue</td><td>durable = overleeft herstart; TTL = verlooptijd</td></tr>
+<tr><td><b>Payload</b></td><td>De echte inhoud van het bericht</td><td>JSON met de bestelgegevens</td></tr>
+<tr><td><b>Acknowledgement</b></td><td>Bevestiging: is het bericht goed ontvangen?</td><td>Ack = ja gelukt; Nack = mislukt</td></tr>
+</table>
+</div>
+
+<div class="card">
+<div class="card-title">Problemen bij messaging</div>
+<table class="t">
+<tr><th>Probleem</th><th>Wat is het?</th><th>Voorbeeld</th></tr>
+<tr><td><b>Poison message</b></td><td>Een bericht dat altijd faalt en de queue blokkeert</td><td>Bericht met verkeerde data dat steeds opnieuw wordt geprobeerd</td></tr>
+<tr><td><b>Lost message</b></td><td>Een bericht dat verdwijnt</td><td>Queue niet durable → bij herstart weg</td></tr>
+<tr><td><b>Duplicate delivery</b></td><td>Broker stuurt bericht meerdere keren</td><td>"At least once" → betaling twee keer verwerkt</td></tr>
+<tr><td><b>Idempotency</b></td><td>Zelfde bericht meerdere keren verwerken = zelfde uitkomst</td><td>Betaling twee keer ontvangen → toch maar één afschrijving</td></tr>
+<tr><td><b>Message ordering</b></td><td>Berichten komen niet altijd in de volgorde aan dat ze verstuurd zijn</td><td>Annulering komt vóór de bestelling aan</td></tr>
+</table>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 6. APPLICATIE-INTEGRATIE ===== -->
+<div class="sec" id="s6">
+<div class="sec-title s6">6. Applicatie-integratie & Architectuurstijlen</div>
+
+<div class="card">
+<div class="card-title">Waarom is applicatie-integratie een probleem?</div>
+<div class="card-body">Grote organisaties gebruiken tientallen systemen: HR-systeem, CRM, webshop, boekhoudpakket. Die zijn allemaal los gebouwd en praten slecht met elkaar.</div>
+<div class="warn">⚠️ Typische problemen: <b>data-silo's</b> (data zit opgesloten in één systeem), <b>dubbele data</b> (klantgegevens staan in drie systemen), <b>handmatige koppelingen</b> via Excelbestanden → fouten, inefficiëntie.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Communicatiemethoden — hoe praten systemen met elkaar?</div>
+<table class="t">
+<tr><th>Methode</th><th>Hoe werkt het?</th><th>Wanneer gebruik je het?</th></tr>
+<tr><td><b>REST</b></td><td>HTTP-verzoeken (GET/POST/PUT/DELETE) met JSON-antwoord. Simpel en breed ondersteund.</td><td>Moderne APIs, de meest gebruikte methode</td></tr>
+<tr><td><b>SOAP</b></td><td>Strikte berichten in XML-formaat. Veel regels en structuur.</td><td>Oudere bedrijfssystemen die dit nog gebruiken</td></tr>
+<tr><td><b>Messaging (queue)</b></td><td>Berichten via een broker/queue. Asynchroon.</td><td>Als systemen los van elkaar moeten werken of de belasting hoog is</td></tr>
+</table>
+</div>
+
+<div class="card">
+<div class="card-title">Point-to-point koppeling — directe verbinding</div>
+<div class="card-body">Systemen praten <b>rechtstreeks</b> met elkaar. Snel opgezet, maar bij veel systemen wordt het een spaghetti.</div>
+<div class="two" style="margin-top:8px">
+<div class="inner"><div class="inner-title" style="color:var(--success)">✅ Voordelen</div><div class="inner-body">Snel te bouwen, simpel te begrijpen bij 2 systemen</div></div>
+<div class="inner"><div class="inner-title" style="color:var(--danger)">❌ Nadelen</div><div class="inner-body">Bij 5 systemen heb je al 10+ verbindingen. Tight coupling, niet schaalbaar, moeilijk te onderhouden</div></div>
+</div>
+<div class="tip" style="margin-top:10px">💡 De oplossing: stop met denken in <i>systemen</i> die met elkaar praten, en denk in <i>services</i> die functionaliteit aanbieden.</div>
+</div>
+
+<div class="card">
+<div class="card-title">SOA — Service Oriented Architecture</div>
+<div class="card-body">Alle functionaliteit wordt aangeboden als <b>losse herbruikbare services</b>. Die services communiceren via een centrale <b>ESB (Enterprise Service Bus)</b>.</div>
+<div class="dw"><svg width="100%" viewBox="0 0 600 200">
+<defs>
+<marker id="ar4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5DCAA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="ar4b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#85B7EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect x="70" y="10" width="110" height="36" rx="6" fill="none" stroke="#85B7EB" stroke-width="1"/>
+<text x="125" y="32" text-anchor="middle" font-size="13" fill="#85B7EB">Web Client</text>
+<rect x="420" y="10" width="110" height="36" rx="6" fill="none" stroke="#85B7EB" stroke-width="1"/>
+<text x="475" y="32" text-anchor="middle" font-size="13" fill="#85B7EB">Mobile App</text>
+<rect x="70" y="76" width="460" height="36" rx="6" fill="none" stroke="#EF9F27" stroke-width="1.5"/>
+<text x="300" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#EF9F27">Enterprise Service Bus (ESB) — centrale tussenlaag</text>
+<line x1="125" y1="46" x2="125" y2="74" stroke="#85B7EB" stroke-width="1.2" marker-end="url(#ar4b)"/>
+<line x1="475" y1="46" x2="475" y2="74" stroke="#85B7EB" stroke-width="1.2" marker-end="url(#ar4b)"/>
+<rect x="50" y="142" width="100" height="36" rx="6" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="100" y="164" text-anchor="middle" font-size="12" fill="#5DCAA5">Account</text>
+<rect x="165" y="142" width="100" height="36" rx="6" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="215" y="164" text-anchor="middle" font-size="12" fill="#5DCAA5">Orders</text>
+<rect x="280" y="142" width="100" height="36" rx="6" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="330" y="164" text-anchor="middle" font-size="12" fill="#5DCAA5">Shipping</text>
+<rect x="395" y="142" width="110" height="36" rx="6" fill="none" stroke="#5DCAA5" stroke-width="1"/>
+<text x="450" y="164" text-anchor="middle" font-size="12" fill="#5DCAA5">Payments</text>
+<line x1="100" y1="112" x2="100" y2="140" stroke="#5DCAA5" stroke-width="1.2" marker-end="url(#ar4)"/>
+<line x1="215" y1="112" x2="215" y2="140" stroke="#5DCAA5" stroke-width="1.2" marker-end="url(#ar4)"/>
+<line x1="330" y1="112" x2="330" y2="140" stroke="#5DCAA5" stroke-width="1.2" marker-end="url(#ar4)"/>
+<line x1="450" y1="112" x2="450" y2="140" stroke="#5DCAA5" stroke-width="1.2" marker-end="url(#ar4)"/>
+</svg></div>
+<div class="explain"><b>Voordeel:</b> Services zijn herbruikbaar. De Payments-service kan door zowel de webshop als de mobile app worden gebruikt.<br><b>Nadeel:</b> De ESB wordt een centrale bottleneck — als die uitvalt, valt alles uit. En het is complex om te beheren.</div>
+</div>
+
+<div class="card">
+<div class="card-title">SOA vs Microservices — wat is het verschil?</div>
+<table class="t">
+<tr><th></th><th>SOA</th><th>Microservices</th></tr>
+<tr><td><b>Centrale bus?</b></td><td>Ja — ESB regelt alles</td><td>Nee — services praten direct of via lichte messaging</td></tr>
+<tr><td><b>Services</b></td><td>Grotere herbruikbare services</td><td>Heel kleine services, elk één taak</td></tr>
+<tr><td><b>Deployment</b></td><td>Vaak als één geheel</td><td>Elk service onafhankelijk te deployen</td></tr>
+<tr><td><b>Schaalbaar?</b></td><td>Beperkt (ESB = bottleneck)</td><td>Heel goed — elke service apart schalen</td></tr>
+<tr><td><b>Complex?</b></td><td>Door ESB</td><td>Door veel kleine services te beheren</td></tr>
+</table>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 7. SNELLE BEGRIPPEN ===== -->
+<div class="sec" id="s7">
+<div class="sec-title s7">7. Snelle begrippen</div>
+
+<div class="card">
+<div class="card-title">Abstracte klasse vs Interface — het cruciale verschil</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">📦 Abstracte klasse</div>
+  <div class="inner-body">Kan <b>gedeelde code</b> bevatten én abstracte methoden die subklassen verplicht moeten implementeren.<br><br>Je kunt maar van <b>één</b> abstracte klasse erven.<br><br><code>abstract class Shape { abstract draw(); }</code></div>
+</div>
+<div class="inner">
+  <div class="inner-title">📋 Interface</div>
+  <div class="inner-body">Bevat <b>alleen handtekeningen</b> — geen code, alleen de afspraken. Een klasse kan <b>meerdere</b> interfaces tegelijk implementeren.<br><br><code>interface IFeedable { feed(); }</code></div>
+</div>
+</div>
+<div class="tip">🔑 <b>Onthoud:</b> Je kunt maar van <b>één abstracte klasse</b> erven, maar je kunt <b>meerdere interfaces</b> tegelijk implementeren. Dit is het meest gevraagde verschil!</div>
+</div>
+
+<table class="t">
+<tr><th>Begriff</th><th>Simpel uitgelegd</th><th>Voorbeeld</th></tr>
+<tr><td><b>Technical debt</b></td><td>Snel gebouwde rommelcode die je later veel extra werk kost om te fixen</td><td>Overal copy-paste → bij elke bug moet je het op 10 plekken fixen</td></tr>
+<tr><td><b>Niet-functionele requirements</b></td><td>Eisen over <i>hoe goed</i> het systeem werkt, niet <i>wat</i> het doet</td><td>Snelheid: "pagina laadt in &lt;2 sec". Beveiliging: "wachtwoorden versleuteld"</td></tr>
+<tr><td><b>super</b></td><td>Verwijst naar de parent klasse. Gebruik je om de parent-constructor of methode aan te roepen.</td><td><code>super.speak();</code> roept speak() van de parent aan</td></tr>
+<tr><td><b>Design for Change</b></td><td>Ontwerp je code zodat je hem later makkelijk kunt aanpassen</td><td>Interface gebruiken zodat je database kunt wisselen zonder alles te herschrijven</td></tr>
+<tr><td><b>Monoliet</b></td><td>Eén grote applicatie — alles bij elkaar. Simpel maar moeilijk schaalbaar</td><td>Één grote Spring Boot app met alles erin</td></tr>
+<tr><td><b>Microservices</b></td><td>Tientallen kleine onafhankelijke services — schaalbaar maar complex te beheren</td><td>Aparte Orders-service, Payments-service, Users-service</td></tr>
+<tr><td><b>Data-silo</b></td><td>Data opgesloten in één systeem, andere systemen kunnen er niet bij</td><td>HR-systeem heeft klantdata die niet gedeeld wordt met CRM</td></tr>
+<tr><td><b>Temporal coupling</b></td><td>Systemen moeten tegelijk online zijn om te kunnen communiceren</td><td>Synchroon REST call faalt als B tijdelijk offline is</td></tr>
+<tr><td><b>Behavioral coupling</b></td><td>A weet precies wat B doet en is daar afhankelijk van</td><td>A roept <code>b.processOrder()</code> direct aan — als B verandert, breekt A</td></tr>
+<tr><td><b>Pub/Sub</b></td><td>Publisher stuurt een event, meerdere subscribers kunnen reageren</td><td>GameEnd event → leaderboard bijwerken + email sturen + statistieken updaten</td></tr>
+<tr><td><b>Broker</b></td><td>De tussenlaag die berichten ontvangt, bewaart en doorstuurt</td><td>RabbitMQ, Apache Kafka</td></tr>
+<tr><td><b>Idempotency</b></td><td>Hetzelfde bericht meerdere keren uitvoeren geeft exact hetzelfde resultaat</td><td>Betaling twee keer ontvangen → toch maar één afschrijving</td></tr>
+</table>
+
+<div class="tip" style="margin-top:1.5rem">🎯 <b>Toetsschema — welk onderwerp hoort waar?</b><br>
+Vraag over klassen en lijntjes → <b>UML</b>.<br>
+Vraag over slechte code of principes → <b>SOLID / Design Smells</b>.<br>
+Vraag over de opbouw van één app → <b>Applicatiearchitectuur / lagen</b>.<br>
+Vraag over meerdere systemen samen → <b>Systeemarchitectuur / SOA</b>.<br>
+Vraag over berichtenuitwisseling → <b>Messaging / Events</b>.
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 8. LOOSE COUPLING & FACTORY ===== -->
+<div class="sec" id="s8">
+<div class="sec-title s8">8. Loose Coupling &amp; Factory Pattern</div>
+
+<div class="card">
+<div class="card-title">Wat is coupling?</div>
+<div class="card-body">Coupling = hoe sterk twee klassen aan elkaar vastzit. <b>Loose coupling</b> = zo min mogelijk afhankelijk van elkaar. <b>Tight/strong coupling</b> = heel erg van elkaar afhankelijk, moeilijk te wijzigen.</div>
+<div class="explain"><b>Probleem tight coupling:</b><br>
+<code>MemberDAO memberDAO = new MySqlMemberDAO();</code><br>
+Je noemt hier de <i>concrete</i> klasse <code>MySqlMemberDAO</code>. Als je wisselt naar een andere database, moet je alle code aanpassen. Slecht!<br><br>
+<b>Oplossing — program to an interface:</b><br>
+<code>MemberDAO memberDAO; // gebruik het interface-type!</code><br>
+Je weet alleen dat het een <code>MemberDAO</code> is, niet welke concrete versie.
+</div>
+<div class="tip">🔑 <b>Onthoud:</b> <code>new ConcreteKlasse()</code> = altijd tight coupling. Dat kun je niet vermijden — maar je kunt het beperken tot zo min mogelijk plekken in je code.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Dependency Injection (DI)</div>
+<div class="card-body">In plaats van zelf een object aanmaken met <code>new</code>, geef je het object mee via de <b>constructor</b>. Zo hoeft een klasse niet te weten welke concrete implementatie hij gebruikt.</div>
+<div class="explain">
+<b>Zonder DI (tight coupling):</b><br>
+<code>MemberDAO dao = new MySqlMemberDAO(); // hardcoded!</code><br><br>
+<b>Met DI (loose coupling):</b><br>
+<code>public MemberAdminManager(MemberDAO memberDAO) {<br>
+&nbsp;&nbsp;this.memberDAO = memberDAO;<br>
+}</code><br><br>
+De klasse die <code>MemberAdminManager</code> aanmaakt, beslist welke concrete DAO het wordt. <code>MemberAdminManager</code> zelf weet het niet!
+</div>
+<div class="dw"><svg width="100%" viewBox="0 0 600 110">
+<defs>
+<marker id="arDI" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="triDI" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="9" markerHeight="9" orient="auto"><polygon points="1,1 13,7 1,13" fill="#1c1c1a" stroke="#9fe1cb" stroke-width="1.2"/></marker>
+</defs>
+<!-- Interface -->
+<rect x="200" y="30" width="130" height="44" rx="6" fill="none" stroke="#F87171" stroke-width="1.2"/>
+<text x="265" y="48" text-anchor="middle" font-size="11" fill="#F87171">«interface»</text>
+<text x="265" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#F87171">MemberDAO</text>
+<!-- Concrete klassen -->
+<rect x="10" y="10" width="150" height="34" rx="6" fill="none" stroke="#9fe1cb" stroke-width="1"/>
+<text x="85" y="31" text-anchor="middle" font-size="12" fill="#9fe1cb">MySqlMemberDAO</text>
+<rect x="10" y="60" width="150" height="34" rx="6" fill="none" stroke="#9fe1cb" stroke-width="1"/>
+<text x="85" y="81" text-anchor="middle" font-size="12" fill="#9fe1cb">TestMemberDAO</text>
+<!-- implements pijlen -->
+<line x1="162" y1="27" x2="200" y2="45" stroke="#9fe1cb" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triDI)"/>
+<line x1="162" y1="77" x2="200" y2="62" stroke="#9fe1cb" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triDI)"/>
+<!-- Manager -->
+<rect x="400" y="30" width="170" height="44" rx="6" fill="none" stroke="#60A5FA" stroke-width="1.2"/>
+<text x="485" y="48" text-anchor="middle" font-size="12" fill="#60A5FA">MemberAdminManager</text>
+<text x="485" y="65" text-anchor="middle" font-size="10" fill="#9c9a92">krijgt DAO via constructor</text>
+<!-- gebruikt interface pijl -->
+<line x1="400" y1="52" x2="332" y2="52" stroke="#60A5FA" stroke-width="1.2" marker-end="url(#arDI)"/>
+<text x="366" y="46" text-anchor="middle" font-size="10" fill="#9c9a92">gebruikt</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="card-title">Het Factory Pattern — waarom?</div>
+<div class="card-body">Elke keer dat je <code>new</code> schrijft, heb je tight coupling. Je kunt dit niet vermijden, maar je kunt het beperken tot <b>één plek</b> in je code: de <b>factory</b>.</div>
+<div class="explain">
+<b>Doel van een factory:</b><br>
+• Maakt objecten aan op één centrale plek<br>
+• Schermt af om welke concrete klasse het gaat<br>
+• Retourneert het object als <b>interface</b> (zodat de rest van je code loose coupled blijft)<br>
+• Een factory zelf is dus wél tight coupled — dat is de <i>bedoeling</i>!
+</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">🏭 Simple Factory</div>
+  <div class="inner-body">Eén klasse die op basis van een parameter bepaalt welk concreet object aangemaakt wordt.<br><br><code>switch(source) {<br>case CSV → new CSVMemberDAO();<br>case SQL → new SQLMemberDAO();<br>}</code><br><br>Nadeel: als je een nieuwe databron toevoegt, moet je de factory aanpassen → schendt OCP!</div>
+</div>
+<div class="inner">
+  <div class="inner-title">🏭🏭 Abstract Factory</div>
+  <div class="inner-body">Er is een <b>interface voor de factory zelf</b>. Elke concrete factory maakt alle DAO's voor één bepaalde databron aan.<br><br><code>DAOFactory → SQLServerDAOFactory<br>DAOFactory → TestDataDAOFactory</code><br><br>Voordeel: je kunt makkelijk een nieuwe databron toevoegen (nieuwe factory klasse) zonder bestaande code te wijzigen → voldoet aan OCP!</div>
+</div>
+</div>
+<div class="dw"><svg width="100%" viewBox="0 0 600 200">
+<defs>
+<marker id="arF" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#F87171" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="triF" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="9" markerHeight="9" orient="auto"><polygon points="1,1 13,7 1,13" fill="#1c1c1a" stroke="#e8e6df" stroke-width="1.2"/></marker>
+</defs>
+<!-- DAOFactory interface -->
+<rect x="200" y="10" width="160" height="44" rx="6" fill="none" stroke="#F87171" stroke-width="1.5"/>
+<text x="280" y="28" text-anchor="middle" font-size="11" fill="#F87171">«interface»</text>
+<text x="280" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#F87171">DAOFactory</text>
+<!-- SQL Factory -->
+<rect x="30" y="110" width="190" height="36" rx="6" fill="none" stroke="#9fe1cb" stroke-width="1"/>
+<text x="125" y="132" text-anchor="middle" font-size="12" fill="#9fe1cb">SQLServerDAOFactory</text>
+<!-- TestData Factory -->
+<rect x="360" y="110" width="190" height="36" rx="6" fill="none" stroke="#9fe1cb" stroke-width="1"/>
+<text x="455" y="132" text-anchor="middle" font-size="12" fill="#9fe1cb">TestDataDAOFactory</text>
+<!-- implements pijlen -->
+<line x1="125" y1="110" x2="230" y2="56" stroke="#e8e6df" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triF)"/>
+<line x1="455" y1="110" x2="332" y2="56" stroke="#e8e6df" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triF)"/>
+<!-- beschrijvingen -->
+<text x="30" y="168" font-size="11" fill="#9c9a92">→ MySQLMemberDAO</text>
+<text x="30" y="183" font-size="11" fill="#9c9a92">→ MySQLBookDAO, ...</text>
+<text x="360" y="168" font-size="11" fill="#9c9a92">→ TestMemberDAO</text>
+<text x="360" y="183" font-size="11" fill="#9c9a92">→ TestBookDAO, ...</text>
+<!-- Manager -->
+<rect x="440" y="10" width="140" height="36" rx="6" fill="none" stroke="#60A5FA" stroke-width="1.2"/>
+<text x="510" y="32" text-anchor="middle" font-size="12" fill="#60A5FA">Manager klasse</text>
+<line x1="440" y1="28" x2="362" y2="28" stroke="#60A5FA" stroke-width="1.2" marker-end="url(#arF)"/>
+<text x="400" y="22" text-anchor="middle" font-size="10" fill="#9c9a92">gebruikt</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="card-title">Factory Instantiatie — hoe krijg je een factory?</div>
+<div class="card-body">De manager heeft een factory nodig, maar wie maakt de factory aan? Dat doet de <b>main klasse</b>!</div>
+<div class="explain">
+<b>Stap voor stap:</b><br>
+1. <code>main</code> maakt een concrete factory aan: <code>new SQLServerDAOFactory()</code><br>
+2. <code>main</code> geeft de factory via de constructor aan de manager mee (dependency injection!)<br>
+3. De manager heeft een attribuut van type <b>DAOFactory</b> (de interface) → blijft loose coupled<br>
+4. De manager vraagt de factory om DAO's: <code>factory.createMemberDAO()</code>
+</div>
+<div class="warn">⚠️ <b>Beperking:</b> Met één factory heb je maar één actieve databron voor je hele app. Alle DAO's zijn dan MySQL óf allemaal TestData. Je kunt niet mixen.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Samenvatting: Loose Coupling begrippen</div>
+<table class="t">
+<tr><th>Begriff</th><th>Simpel uitgelegd</th></tr>
+<tr><td><b>Tight/Strong coupling</b></td><td>Klasse A weet precies van welke concrete klasse B het object is. Moeilijk te wijzigen.</td></tr>
+<tr><td><b>Loose coupling</b></td><td>Klasse A praat alleen via een interface met B. A hoeft niet te weten welke concrete klasse het is.</td></tr>
+<tr><td><b>Program to an interface</b></td><td>Gebruik als type altijd een interface, nooit de concrete klasse.</td></tr>
+<tr><td><b>Dependency Injection</b></td><td>Geef een object via de constructor mee in plaats van het zelf aan te maken met <code>new</code>.</td></tr>
+<tr><td><b>Simple Factory</b></td><td>Eén klasse maakt op basis van een parameter het juiste concrete object aan.</td></tr>
+<tr><td><b>Abstract Factory</b></td><td>Een interface voor de factory zelf, met meerdere concrete factory-implementaties voor verschillende databronnen.</td></tr>
+</table>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 9. DOORONTWIKKELING & REFACTORING ===== -->
+<div class="sec" id="s9">
+<div class="sec-title s9">9. Doorontwikkeling, SRP &amp; Refactoring</div>
+
+<div class="card">
+<div class="card-title">SRP — Single Responsibility (verdieping)</div>
+<div class="card-body">Een klasse heeft maar <b>één verantwoordelijkheid</b>. Maar hoe weet je wat die verantwoordelijkheid is? Vraag jezelf af: "Waarom zou ik deze klasse moeten aanpassen?"</div>
+<div class="explain">
+<b>Voorbeeld BSN-validatie:</b><br>
+Stel je voegt een BSN (BurgerServiceNummer) toe aan een Member. Je zet de validatiemethode <i>in</i> de Member-klasse. Maar klopt dat?<br><br>
+<b>Nee!</b> De Member-klasse gaat over een lid van de bibliotheek. Validatielogica voor BSN is een aparte verantwoordelijkheid. Maak een aparte klasse: <code>BurgerServiceNummer</code>.<br><br>
+<b>Voordeel:</b> Als de BSN-regels veranderen, pas je alleen de <code>BurgerServiceNummer</code> klasse aan — niet de Member-klasse.
+</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title" style="color:var(--danger)">❌ Fout: alles in Member</div>
+  <div class="inner-body"><code>class Member {<br>
+&nbsp;&nbsp;String bsn;<br>
+&nbsp;&nbsp;boolean validateBSN() { ... }<br>
+}</code><br>Member heeft nu 2 redenen om te veranderen: lidmaatschapslogica én BSN-validatielogica.</div>
+</div>
+<div class="inner">
+  <div class="inner-title" style="color:var(--success)">✅ Goed: aparte klasse</div>
+  <div class="inner-body"><code>class BurgerServiceNummer {<br>
+&nbsp;&nbsp;String nummer;<br>
+&nbsp;&nbsp;boolean isGeldig() { ... }<br>
+}<br><br>
+class Member {<br>
+&nbsp;&nbsp;BurgerServiceNummer bsn;<br>
+}</code></div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Internationalisering — SSN (Social Security Number)</div>
+<div class="card-body">Stel je app gaat internationaal. Een Nederlands BSN is anders dan een Amerikaans SSN. Hoe los je dit op zonder je hele code om te gooien?</div>
+<div class="explain">
+<b>Oplossing:</b> Maak een <b>abstracte klasse of interface</b> <code>SSN</code> en maak concrete subklassen per land:<br>
+• <code>BurgerServiceNummer</code> (Nederland)<br>
+• <code>SocialSecurityNumber</code> (VS)<br><br>
+De <code>Member</code> klasse krijgt een attribuut van type <code>SSN</code> (de interface) + een <code>country</code> attribuut.<br><br>
+Om te bepalen welke concrete SSN aangemaakt moet worden, gebruik je een <b>Simple Factory</b>:<br>
+<code>SSN ssn = SsnFactory.create(country);</code>
+</div>
+<div class="dw"><svg width="100%" viewBox="0 0 600 170">
+<defs>
+<marker id="arSSN" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="triSSN" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="9" markerHeight="9" orient="auto"><polygon points="1,1 13,7 1,13" fill="#1c1c1a" stroke="#e8e6df" stroke-width="1.2"/></marker>
+</defs>
+<!-- SSN interface -->
+<rect x="215" y="10" width="130" height="44" rx="6" fill="none" stroke="#60A5FA" stroke-width="1.5"/>
+<text x="280" y="28" text-anchor="middle" font-size="11" fill="#60A5FA">«interface»</text>
+<text x="280" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#60A5FA">SSN</text>
+<!-- BSN -->
+<rect x="60" y="110" width="165" height="36" rx="6" fill="none" stroke="#9fe1cb" stroke-width="1"/>
+<text x="143" y="132" text-anchor="middle" font-size="12" fill="#9fe1cb">BurgerServiceNummer</text>
+<!-- US SSN -->
+<rect x="340" y="110" width="165" height="36" rx="6" fill="none" stroke="#9fe1cb" stroke-width="1"/>
+<text x="423" y="132" text-anchor="middle" font-size="12" fill="#9fe1cb">SocialSecurityNumber</text>
+<!-- implements pijlen -->
+<line x1="143" y1="110" x2="238" y2="56" stroke="#e8e6df" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triSSN)"/>
+<line x1="423" y1="110" x2="322" y2="56" stroke="#e8e6df" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triSSN)"/>
+<!-- Member -->
+<rect x="10" y="10" width="80" height="36" rx="6" fill="none" stroke="#F87171" stroke-width="1.2"/>
+<text x="50" y="32" text-anchor="middle" font-size="13" fill="#F87171">Member</text>
+<line x1="92" y1="28" x2="213" y2="28" stroke="#F87171" stroke-width="1.2" marker-end="url(#arSSN)"/>
+<text x="152" y="22" text-anchor="middle" font-size="10" fill="#9c9a92">heeft een SSN</text>
+<!-- SsnFactory -->
+<rect x="470" y="10" width="115" height="36" rx="6" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
+<text x="528" y="32" text-anchor="middle" font-size="12" fill="#EF9F27">SsnFactory</text>
+<line x1="470" y1="28" x2="347" y2="28" stroke="#EF9F27" stroke-width="1.2" marker-end="url(#arSSN)"/>
+<text x="408" y="22" text-anchor="middle" font-size="10" fill="#9c9a92">maakt aan</text>
+</svg></div>
+<div class="tip">💡 <b>Wie gebruikt de SsnFactory?</b> Zowel de GUI (bij het aanmaken van een Member) als de DAO (bij het ophalen uit de database). Zo voorkom je code-duplicatie!</div>
+</div>
+
+<div class="card">
+<div class="card-title">Refactoring — wat is het?</div>
+<div class="card-body">Refactoring = de interne structuur van code verbeteren <b>zonder</b> dat de functionaliteit verandert. Je maakt de code cleaner, maar het gedrag blijft hetzelfde.</div>
+<div class="explain">
+<b>Voorbeelden van refactoring:</b><br>
+• <b>Extract Interface:</b> Maak een interface van een klasse zodat je loose coupling kunt toepassen<br>
+• <b>Extract Method:</b> Haal een stuk code uit een lange methode en maak er een aparte methode van<br>
+• <b>Extract Class:</b> Een klasse doet te veel → splits op in twee klassen (SRP!)<br>
+• <b>Rename:</b> Geef variabelen en methoden duidelijkere namen<br><br>
+<b>Hoe?</b> IDE-tools (IntelliJ, Eclipse) helpen je refactoren zonder fouten te maken. Bijv. <i>Extract Interface</i> doet alles automatisch.
+</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">🎯 Doel van refactoring</div>
+  <div class="inner-body">• Leesbaarheid vergroten<br>• Technical debt verminderen<br>• SRP beter naleven<br>• Loose coupling bereiken<br>• Onderhoud makkelijker maken</div>
+</div>
+<div class="inner">
+  <div class="inner-title">⚠️ Let op!</div>
+  <div class="inner-body">Refactoring verandert <b>nooit</b> het gedrag van de software! Je test daarna of alles nog werkt. Altijd refactoren vóór je nieuwe features toevoegt — dan wordt de codebase niet steeds rommeliger.</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Cohesion — verwant aan SRP</div>
+<div class="card-body"><b>Cohesion</b> (samenhang) = in hoeverre horen de verantwoordelijkheden van een klasse bij elkaar? <b>Hoge cohesie</b> = goed. <b>Lage cohesie</b> = de klasse doet te veel ongerelateerde dingen.</div>
+<div class="explain">
+<b>Lage cohesie (slecht):</b> Een klasse die BSN valideert, e-mails verstuurt én in de database opslaat.<br><br>
+<b>Hoge cohesie (goed):</b> Elke klasse doet één ding heel goed — zoals <code>BurgerServiceNummer</code> die alleen over BSN-nummers gaat.
+</div>
+<div class="tip">🔑 <b>Verband SRP ↔ Cohesie:</b> Als je SRP goed toepast, krijg je automatisch hoge cohesie. Het zijn twee kanten van dezelfde munt.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Samenvatting: Doorontwikkeling begrippen</div>
+<table class="t">
+<tr><th>Begriff</th><th>Simpel uitgelegd</th></tr>
+<tr><td><b>Refactoring</b></td><td>Code verbeteren zonder het gedrag te veranderen. Cleaner, overzichtelijker, beter onderhoudbaar.</td></tr>
+<tr><td><b>Extract Interface</b></td><td>Refactoring-stap: haal een interface uit een bestaande klasse, zodat je loose coupling kunt toepassen.</td></tr>
+<tr><td><b>Cohesion</b></td><td>Hoe goed de verantwoordelijkheden van een klasse bij elkaar horen. Hoge cohesie = goed!</td></tr>
+<tr><td><b>BSN / SSN</b></td><td>Voorbeeld van SRP: identificatienummers worden aparte klassen, niet attributen van Member.</td></tr>
+<tr><td><b>Internationaliseringspatroon</b></td><td>Interface SSN + concrete klassen per land + Simple Factory om het juiste type aan te maken.</td></tr>
+<tr><td><b>DAO + Factory samen</b></td><td>De DAO maakt gebruik van de SsnFactory zodat er geen code-duplicatie is bij het ophalen van Members uit de database.</td></tr>
+</table>
+</div>
+
+</div>
+
+
+<div class="divider"></div>
+
+<!-- ===== 10. NYGARD ADR-TEMPLATE ===== -->
+<div class="sec" id="s10">
+<div class="sec-title" style="border-color:#C084FC">10. Nygard ADR — het exacte format</div>
+
+<div class="card">
+<div class="card-title">Waarom het Nygard-format?</div>
+<div class="card-body">Op de toets moet je zelf een ADR <b>schrijven</b> in Nygard-format. Niet uitleggen wat het is — maar het daadwerkelijk invullen. Hieronder het exacte format dat je moet kennen.</div>
+<div class="warn">⚠️ <b>Let op:</b> Er zijn meerdere ADR-formats (MADR, Nygard). Op de toets wordt specifiek het <b>Nygard</b>-format gevraagd. Verschil: Nygard heeft géén "Decision Drivers" of "Considered Options" als aparte sectie — dat zit verpakt in Context.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Het Nygard-template — letterlijk</div>
+<div class="card-body">Elke ADR heeft precies <b>5 secties</b>. Niets meer, niets minder.</div>
+<div class="dw" style="font-family:'Courier New',monospace;font-size:13px;line-height:1.8;color:var(--text)">
+<span style="color:#C084FC;font-weight:700"># [Titel van de beslissing]</span><br><br>
+<span style="color:#C084FC;font-weight:700">## Status</span><br>
+<span style="color:var(--text2)">Proposed | Accepted | Deprecated | Superseded</span><br><br>
+<span style="color:#C084FC;font-weight:700">## Context</span><br>
+<span style="color:var(--text2)">Wat is het probleem of de situatie die deze beslissing noodzakelijk maakt?<br>Welke eisen, beperkingen of omstandigheden zijn er?</span><br><br>
+<span style="color:#C084FC;font-weight:700">## Decision</span><br>
+<span style="color:var(--text2)">Welke keuze maken we? Beschrijf de oplossing die gekozen is.<br>Wees concreet: "We gebruiken RabbitMQ als message broker."</span><br><br>
+<span style="color:#C084FC;font-weight:700">## Consequences</span><br>
+<span style="color:var(--text2)">Wat zijn de gevolgen van deze keuze?<br>Zowel positieve als negatieve gevolgen noemen!<br>Voorbeeld: + makkelijk te schalen, - extra infrastructuur nodig</span>
+</div>
+<div class="explain">
+<b>Status-waarden uitgelegd:</b><br>
+• <b>Proposed</b> → voorstel, nog niet besloten<br>
+• <b>Accepted</b> → goedgekeurd en actief in gebruik<br>
+• <b>Deprecated</b> → was geaccepteerd, maar verouderd / niet meer relevant<br>
+• <b>Superseded</b> → vervangen door een nieuwe ADR (verwijs dan naar die nieuwe ADR)
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Nygard ADR — ingevuld voorbeeld</div>
+<div class="card-body">Zo ziet een complete Nygard-ADR eruit bij een messaging-keuze:</div>
+<div class="dw" style="font-size:13px;line-height:1.8">
+<span style="color:#C084FC;font-weight:700"># Gebruik van RabbitMQ als message broker</span><br><br>
+<span style="color:#C084FC;font-weight:700">## Status</span><br>
+<span style="color:var(--text2)">Accepted</span><br><br>
+<span style="color:#C084FC;font-weight:700">## Context</span><br>
+<span style="color:var(--text2)">De nieuwe betalingsmodule moet orders verwerken zonder afhankelijk te zijn van de beschikbaarheid van het legacy-systeem. Bij direct koppelen (REST) valt alles uit als het legacy-systeem offline is (temporal coupling). We hebben een oplossing nodig die berichten bewaart totdat ze verwerkt kunnen worden.</span><br><br>
+<span style="color:#C084FC;font-weight:700">## Decision</span><br>
+<span style="color:var(--text2)">We gebruiken RabbitMQ als message broker. De betalingsmodule plaatst betalingsopdrachten als messages in een queue. Het legacy-systeem leest deze messages asynchroon op.</span><br><br>
+<span style="color:#C084FC;font-weight:700">## Consequences</span><br>
+<span style="color:var(--text2)">+ Temporal coupling opgelost: systemen hoeven niet tegelijk online te zijn.<br>+ Berichten gaan niet verloren bij uitval (durable queue).<br>- Extra infrastructuur: RabbitMQ-server moet beheerd worden.<br>- Complexer debuggen: je kunt niet direct zien of een bericht verwerkt is.</span>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Nygard vs MADR — snel verschil</div>
+<table class="t">
+<tr><th>Sectie</th><th>Nygard</th><th>MADR</th></tr>
+<tr><td>Titel</td><td>✅</td><td>✅</td></tr>
+<tr><td>Status</td><td>✅</td><td>✅ (als frontmatter)</td></tr>
+<tr><td>Context</td><td>✅ (vrij tekst)</td><td>✅ + "Problem Statement"</td></tr>
+<tr><td>Decision Drivers</td><td>❌ (zit in Context)</td><td>✅ apart blok</td></tr>
+<tr><td>Considered Options</td><td>❌ (zit in Context)</td><td>✅ apart blok</td></tr>
+<tr><td>Decision</td><td>✅</td><td>✅ "Decision Outcome"</td></tr>
+<tr><td>Consequences</td><td>✅</td><td>✅ + good/bad/neutral</td></tr>
+</table>
+<div class="tip">💡 <b>Op de toets:</b> Gebruik het <b>Nygard</b>-format tenzij anders gevraagd. Makkelijker te schrijven, minder verplichte secties.</div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 11. ABSTRACT FACTORY STAP 2 ===== -->
+<div class="sec" id="s11">
+<div class="sec-title" style="border-color:#34D399">11. Abstract Factory — stap 1 vs stap 2</div>
+
+<div class="card">
+<div class="card-title">Stap 1 vs Stap 2 — wat is het verschil?</div>
+<div class="card-body">In de workshops worden twee stappen van het factory-pattern behandeld. Dit is precies wat de toets vraagt.</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">🏭 Stap 1 — Simple Factory</div>
+  <div class="inner-body">Eén concrete factory-klasse met een switch/if die het juiste object aanmaakt.<br><br>
+  <b>Probleem:</b> als je een nieuwe soort toevoegt, moet je de factory aanpassen → schendt OCP!<br><br>
+  <code>class DAOFactory {<br>
+  &nbsp;createDAO(type) {<br>
+  &nbsp;&nbsp;if SQL → new SqlDAO()<br>
+  &nbsp;&nbsp;if XML → new XmlDAO()<br>
+  &nbsp;}}<br></code></div>
+</div>
+<div class="inner">
+  <div class="inner-title">🏭🏭 Stap 2 — Abstract Factory</div>
+  <div class="inner-body">Een <b>interface voor de factory zelf</b>. Elke concrete factory-klasse maakt objecten voor één "familie".<br><br>
+  <b>Voordeel:</b> Nieuwe familie toevoegen = nieuwe factory-klasse. Bestaande code hoeft niet aan te worden geraakt → OCP ✅<br><br>
+  <code>interface DAOFactory<br>
+  SqlDAOFactory implements DAOFactory<br>
+  XmlDAOFactory implements DAOFactory</code></div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Stap 2 diagram — de volledige structuur</div>
+<div class="card-body">Dit is het patroon dat je moet kunnen tekenen en uitleggen. Let op de twee "kanten": de factory-kant en de product-kant.</div>
+<div class="dw"><svg width="100%" viewBox="0 0 700 320">
+<defs>
+<marker id="arAF" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#34D399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="triAF" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="9" markerHeight="9" orient="auto"><polygon points="1,1 13,7 1,13" fill="#1c1c1a" stroke="#e8e6df" stroke-width="1.2"/></marker>
+</defs>
+<!-- RequestingClass -->
+<rect x="10" y="120" width="130" height="40" rx="6" fill="none" stroke="#60A5FA" stroke-width="1.5"/>
+<text x="75" y="144" text-anchor="middle" font-size="12" fill="#60A5FA">RequestingClass</text>
+<!-- Factory interface -->
+<rect x="200" y="100" width="150" height="50" rx="6" fill="none" stroke="#34D399" stroke-width="2"/>
+<text x="275" y="120" text-anchor="middle" font-size="11" fill="#34D399">«interface»</text>
+<text x="275" y="138" text-anchor="middle" font-size="13" font-weight="700" fill="#34D399">FactoryBase</text>
+<!-- Concrete factories -->
+<rect x="110" y="210" width="160" height="40" rx="6" fill="none" stroke="#9fe1cb" stroke-width="1"/>
+<text x="190" y="234" text-anchor="middle" font-size="12" fill="#9fe1cb">ConcreteFactory_A</text>
+<rect x="290" y="210" width="160" height="40" rx="6" fill="none" stroke="#9fe1cb" stroke-width="1"/>
+<text x="370" y="234" text-anchor="middle" font-size="12" fill="#9fe1cb">ConcreteFactory_B</text>
+<!-- Product interface -->
+<rect x="490" y="100" width="150" height="50" rx="6" fill="none" stroke="#F87171" stroke-width="2"/>
+<text x="565" y="120" text-anchor="middle" font-size="11" fill="#F87171">«interface»</text>
+<text x="565" y="138" text-anchor="middle" font-size="13" font-weight="700" fill="#F87171">Product</text>
+<!-- Concrete products -->
+<rect x="430" y="210" width="130" height="40" rx="6" fill="none" stroke="#fca5a5" stroke-width="1"/>
+<text x="495" y="234" text-anchor="middle" font-size="12" fill="#fca5a5">ProductType_A</text>
+<rect x="570" y="210" width="130" height="40" rx="6" fill="none" stroke="#fca5a5" stroke-width="1"/>
+<text x="635" y="234" text-anchor="middle" font-size="12" fill="#fca5a5">ProductType_B</text>
+<!-- Arrows -->
+<!-- RequestingClass uses FactoryBase -->
+<line x1="140" y1="140" x2="198" y2="130" stroke="#60A5FA" stroke-width="1.2" stroke-dasharray="5 3" marker-end="url(#arAF)"/>
+<text x="170" y="128" font-size="10" fill="#9c9a92">«use»</text>
+<!-- FactoryBase uses Product -->
+<line x1="350" y1="125" x2="488" y2="125" stroke="#34D399" stroke-width="1.2" stroke-dasharray="5 3" marker-end="url(#arAF)"/>
+<text x="418" y="118" font-size="10" fill="#9c9a92">«use»</text>
+<!-- ConcreteFactory_A implements FactoryBase -->
+<line x1="190" y1="210" x2="238" y2="152" stroke="#e8e6df" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triAF)"/>
+<!-- ConcreteFactory_B implements FactoryBase -->
+<line x1="370" y1="210" x2="312" y2="152" stroke="#e8e6df" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triAF)"/>
+<!-- Products implement Product -->
+<line x1="495" y1="210" x2="530" y2="152" stroke="#e8e6df" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triAF)"/>
+<line x1="635" y1="210" x2="600" y2="152" stroke="#e8e6df" stroke-width="1.2" stroke-dasharray="6 3" marker-end="url(#triAF)"/>
+<!-- creates arrows -->
+<line x1="272" y1="250" x2="428" y2="240" stroke="#9fe1cb" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arAF)"/>
+<text x="340" y="260" font-size="10" fill="#9c9a92">creates</text>
+<line x1="450" y1="250" x2="570" y2="250" stroke="#9fe1cb" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arAF)"/>
+<!-- Labels -->
+<text x="10" y="20" font-size="11" fill="#9c9a92">Factory-kant (links)</text>
+<text x="460" y="20" font-size="11" fill="#9c9a92">Product-kant (rechts)</text>
+<line x1="0" y1="280" x2="700" y2="280" stroke="var(--border)" stroke-width="0.5"/>
+<text x="10" y="300" font-size="11" fill="#9c9a92">Factory_A maakt ProductType_A. Factory_B maakt ProductType_B. RequestingClass weet alleen van de interfaces!</text>
+</svg></div>
+<div class="explain">
+<b>Bibliotheek-voorbeeld:</b><br>
+• <code>DAOFactory</code> = factory-interface<br>
+• <code>SQLServerDAOFactory</code> = maakt SQL-varianten: <code>SQLMemberDAO</code>, <code>SQLBookDAO</code><br>
+• <code>TestDataDAOFactory</code> = maakt test-varianten: <code>TestMemberDAO</code>, <code>TestBookDAO</code><br>
+• De Manager-klasse weet alleen van <code>DAOFactory</code> → volledig loose coupled
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Hoe voeg je een nieuw monster/product toe? (toets-vraag!)</div>
+<div class="card-body">Dit is precies wat vraag 1 van de oefentoets vraagt. Leer dit stappenplan.</div>
+<div class="explain">
+<b>Stel: je voegt een nieuw MonsterType (Gorilla) en een nieuwe reeks (SilverLine) toe.</b><br><br>
+<b>Nieuwe monster-soort (Gorilla):</b><br>
+1. Maak interface of abstracte klasse <code>Gorilla</code> (naast Spider, Duck, Tiger)<br>
+2. Voeg <code>createGorilla() : Gorilla</code> toe aan de <code>MonsterFactory</code>-interface<br>
+3. Maak voor elke bestaande reeks een concrete klasse: <code>FrostyGorilla</code>, <code>FieryGorilla</code>, <code>GoldGorilla</code><br>
+4. Voeg <code>createGorilla()</code> toe aan elke bestaande concrete factory<br><br>
+<b>Nieuwe reeks (SilverLine):</b><br>
+1. Maak <code>SilverFactory</code> die <code>MonsterFactory</code> implementeert<br>
+2. Implementeer alle create-methoden: <code>createSpider() → new SilverSpider()</code> etc.<br>
+3. Maak de bijbehorende concrete klassen: <code>SilverSpider</code>, <code>SilverDuck</code>, <code>SilverTiger</code>
+</div>
+<div class="tip">💡 <b>Verschil:</b> Nieuwe soort toevoegen = aanpassen van factory-interface + bestaande factories (schendt eigenlijk OCP). Nieuwe reeks toevoegen = alleen nieuwe klassen → volledig OCP-proof! Dit is waarom Abstract Factory zo krachtig is voor het toevoegen van nieuwe "families".</div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 12. DELIVERY GUARANTEES ===== -->
+<div class="sec" id="s12">
+<div class="sec-title" style="border-color:#FBBF24">12. Delivery Guarantees — hoe zeker is je bericht?</div>
+
+<div class="card">
+<div class="card-title">De drie delivery guarantees</div>
+<div class="card-body">Wanneer je een bericht stuurt via een queue, is er geen garantie dat het altijd precies één keer aankomt. Er zijn drie niveaus van zekerheid.</div>
+<table class="t">
+<tr><th>Guarantee</th><th>Wat betekent het?</th><th>Risico</th><th>Wanneer gebruik je het?</th></tr>
+<tr><td><b>At most once</b><br><span style="font-size:11px;color:var(--text2)">hooguit één keer</span></td><td>Het bericht wordt maximaal één keer afgeleverd. Als het mislukt, wordt het <b>niet opnieuw</b> geprobeerd.</td><td>Berichten kunnen verloren gaan!</td><td>Logging, statistieken — berichten die je wel kunt missen.</td></tr>
+<tr><td><b>At least once</b><br><span style="font-size:11px;color:var(--text2)">minimaal één keer</span></td><td>Het bericht komt <b>zeker aan</b>, maar kan meerdere keren afgeleverd worden als er iets misgaat (retry).</td><td>Duplicaten! Zorg voor idempotency.</td><td>Betalingen verwerken, orders aanmaken — mag niet verloren gaan.</td></tr>
+<tr><td><b>Exactly once</b><br><span style="font-size:11px;color:var(--text2)">precies één keer</span></td><td>Het bericht komt <b>precies één keer</b> aan. Geen verlies, geen duplicaten.</td><td>Erg moeilijk en duur om te implementeren. Leidt tot veel overhead.</td><td>Financiële transacties — alleen als at-least-once + idempotency niet volstaat.</td></tr>
+</table>
+<div class="warn">⚠️ <b>In de praktijk:</b> "Exactly once" klinkt ideaal, maar is technisch heel complex en traag. Meestal kies je voor <b>at-least-once + idempotency</b> als compromis.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Idempotency — de sleutel bij at-least-once</div>
+<div class="card-body"><b>Idempotent</b> = hetzelfde bericht meerdere keren verwerken geeft <b>exact hetzelfde resultaat</b> als één keer verwerken.</div>
+<div class="explain">
+<b>Voorbeeld niet-idempotent (fout):</b><br>
+Bericht: "Schrijf €50 af van rekening X."<br>
+Als dit twee keer binnenkomt → twee keer €50 afgeschreven. Groot probleem!<br><br>
+<b>Voorbeeld idempotent (goed):</b><br>
+Bericht: "Verwerk betaling met ID=abc123."<br>
+De ontvanger controleert: "Heb ik ID=abc123 al verwerkt?" Ja → negeer. Nee → verwerk.<br>
+Als dit twee keer binnenkomt → wordt maar één keer verwerkt. ✅
+</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">🔑 Hoe maak je iets idempotent?</div>
+  <div class="inner-body">• Gebruik een uniek bericht-ID (messageId / correlationId)<br>• Sla verwerkte ID's op in een database<br>• Check bij ontvangst: "Al verwerkt?" → skip als ja</div>
+</div>
+<div class="inner">
+  <div class="inner-title">📋 Verband met andere concepten</div>
+  <div class="inner-body">• At-least-once + idempotency ≈ exactly-once<br>• Acknowledgement (Ack/Nack) bepaalt of een broker opnieuw stuurt<br>• Poison messages kunnen ook duplicaten veroorzaken</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Samenvatting: Delivery Guarantees</div>
+<table class="t">
+<tr><th>Begriff</th><th>Simpel uitgelegd</th></tr>
+<tr><td><b>At most once</b></td><td>Bericht kan verloren gaan. Geen retry. Gebruik alleen voor niet-kritieke data.</td></tr>
+<tr><td><b>At least once</b></td><td>Bericht komt aan, maar kan dubbel zijn. Zorg voor idempotency aan de ontvangende kant.</td></tr>
+<tr><td><b>Exactly once</b></td><td>Bericht komt precies één keer aan. Technisch complex en traag. Zelden gebruikt.</td></tr>
+<tr><td><b>Idempotency</b></td><td>Zelfde bericht meerdere keren = zelfde resultaat. Realiseer met uniek message-ID + check.</td></tr>
+<tr><td><b>Ack/Nack</b></td><td>Ack = bericht verwerkt, verwijder uit queue. Nack = mislukt, probeer opnieuw (→ at-least-once).</td></tr>
+</table>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 13. APPLICATIELANDSCHAP ===== -->
+<div class="sec" id="s13">
+<div class="sec-title" style="border-color:#FB923C">13. Applicatielandschap — hoe werken systemen samen?</div>
+
+<div class="card">
+<div class="card-title">Wat is een applicatielandschap?</div>
+<div class="card-body">Een applicatielandschap is een <b>diagram van meerdere systemen</b> die met elkaar communiceren. Je ziet welke systemen er zijn, hoe ze zijn verbonden en welke data er stroomt.</div>
+<div class="explain">
+<b>Verschil met applicatiearchitectuur:</b><br>
+• Applicatiearchitectuur = hoe is <i>één app</i> van binnen opgebouwd (lagen, klassen)<br>
+• Applicatielandschap = hoe werken <i>meerdere apps/systemen</i> samen op systeemniveau
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Voorbeeld: e-commerce applicatielandschap</div>
+<div class="dw"><svg width="100%" viewBox="0 0 700 300">
+<defs>
+<marker id="arL" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#FB923C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="arLb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<!-- Gebruiker -->
+<rect x="10" y="120" width="90" height="40" rx="8" fill="none" stroke="#9c9a92" stroke-width="1"/>
+<text x="55" y="144" text-anchor="middle" font-size="12" fill="#9c9a92">👤 Gebruiker</text>
+<!-- Webshop Frontend -->
+<rect x="150" y="100" width="130" height="50" rx="8" fill="none" stroke="#FB923C" stroke-width="1.5"/>
+<text x="215" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#FB923C">Webshop</text>
+<text x="215" y="139" text-anchor="middle" font-size="11" fill="#FB923C">Frontend</text>
+<!-- Backend API -->
+<rect x="340" y="100" width="130" height="50" rx="8" fill="none" stroke="#FB923C" stroke-width="1.5"/>
+<text x="405" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#FB923C">Backend</text>
+<text x="405" y="139" text-anchor="middle" font-size="11" fill="#FB923C">API (REST)</text>
+<!-- Database -->
+<rect x="530" y="60" width="130" height="40" rx="8" fill="none" stroke="#5DCAA5" stroke-width="1.5"/>
+<text x="595" y="84" text-anchor="middle" font-size="12" fill="#5DCAA5">🗄️ Database</text>
+<!-- Betaalsysteem -->
+<rect x="530" y="120" width="130" height="40" rx="8" fill="none" stroke="#60A5FA" stroke-width="1.5"/>
+<text x="595" y="144" text-anchor="middle" font-size="12" fill="#60A5FA">💳 Betaalsysteem</text>
+<!-- Message Queue -->
+<rect x="340" y="200" width="130" height="50" rx="8" fill="none" stroke="#EF9F27" stroke-width="1.5"/>
+<text x="405" y="222" text-anchor="middle" font-size="12" font-weight="700" fill="#EF9F27">Message Queue</text>
+<text x="405" y="239" text-anchor="middle" font-size="11" fill="#EF9F27">(RabbitMQ)</text>
+<!-- Legacy Systeem -->
+<rect x="530" y="190" width="130" height="50" rx="8" fill="none" stroke="#9c9a92" stroke-width="1"/>
+<text x="595" y="212" text-anchor="middle" font-size="12" fill="#9c9a92">🏚️ Legacy</text>
+<text x="595" y="229" text-anchor="middle" font-size="11" fill="#9c9a92">Systeem</text>
+<!-- Arrows -->
+<line x1="100" y1="140" x2="148" y2="130" stroke="#9c9a92" stroke-width="1.2" marker-end="url(#arL)"/>
+<text x="124" y="128" text-anchor="middle" font-size="9" fill="#9c9a92">HTTP</text>
+<line x1="280" y1="125" x2="338" y2="125" stroke="#FB923C" stroke-width="1.2" marker-end="url(#arL)"/>
+<text x="309" y="118" text-anchor="middle" font-size="9" fill="#9c9a92">REST</text>
+<line x1="470" y1="115" x2="528" y2="90" stroke="#5DCAA5" stroke-width="1.2" marker-end="url(#arL)"/>
+<text x="500" y="95" text-anchor="middle" font-size="9" fill="#9c9a92">SQL</text>
+<line x1="470" y1="135" x2="528" y2="140" stroke="#60A5FA" stroke-width="1.2" marker-end="url(#arLb)"/>
+<text x="500" y="148" text-anchor="middle" font-size="9" fill="#9c9a92">API</text>
+<line x1="405" y1="150" x2="405" y2="198" stroke="#EF9F27" stroke-width="1.2" marker-end="url(#arL)"/>
+<text x="420" y="178" font-size="9" fill="#9c9a92">async</text>
+<line x1="470" y1="220" x2="528" y2="220" stroke="#EF9F27" stroke-width="1.2" marker-end="url(#arL)"/>
+<text x="500" y="213" text-anchor="middle" font-size="9" fill="#9c9a92">leest</text>
+<!-- Legend -->
+<text x="10" y="270" font-size="11" fill="#9c9a92">Rechthoeken = systemen. Pijlen = communicatie. Labels op pijlen = protocol of type communicatie.</text>
+</svg></div>
+<div class="explain">
+<b>Wat zie je in dit diagram?</b><br>
+• De <b>webshop-frontend</b> praat via REST met de <b>backend API</b><br>
+• De backend slaat data op in een <b>database</b> en betaalt via een extern <b>betaalsysteem</b><br>
+• Asynchroon: de backend plaatst berichten in een <b>message queue</b><br>
+• Het <b>legacy-systeem</b> leest de queue asynchroon — geen directe koppeling!
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Point-to-point vs hub-and-spoke (ESB)</div>
+<div class="card-body">Hoe koppel je meerdere systemen aan elkaar? Er zijn twee basispatronen.</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">🔗 Point-to-point</div>
+  <div class="inner-body">Elk systeem koppelt rechtstreeks aan elk ander systeem. Bij 5 systemen = 10 verbindingen.<br><br>
+  <b>Probleem:</b> snel spaghetti! Als systeem A verandert, moeten B, C en D allemaal worden aangepast → tight coupling op systeemniveau.</div>
+</div>
+<div class="inner">
+  <div class="inner-title">🌐 Hub-and-spoke (ESB/Broker)</div>
+  <div class="inner-body">Alle systemen praten via een <b>centrale hub</b> (message broker of ESB). Systemen weten niet van elkaars bestaan.<br><br>
+  <b>Voordeel:</b> loose coupling op systeemniveau. Nieuw systeem toevoegen = alleen koppelen aan de hub.</div>
+</div>
+</div>
+<div class="tip">💡 <b>Verband:</b> Een message queue (RabbitMQ, Kafka) is een vorm van hub-and-spoke. Producers en consumers zijn los van elkaar gekoppeld via de broker.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Samenvatting: Applicatielandschap begrippen</div>
+<table class="t">
+<tr><th>Begriff</th><th>Simpel uitgelegd</th></tr>
+<tr><td><b>Applicatielandschap</b></td><td>Diagram van meerdere systemen die samenwerken. Toont welke systemen er zijn en hoe ze communiceren.</td></tr>
+<tr><td><b>Point-to-point koppeling</b></td><td>Systemen praten direct met elkaar. Simpel bij weinig systemen, spaghetti bij veel systemen.</td></tr>
+<tr><td><b>Hub-and-spoke / broker</b></td><td>Alle systemen via een centrale hub. Loose coupling op systeemniveau.</td></tr>
+<tr><td><b>Applicatiearchitectuur</b></td><td>Hoe één app van binnen werkt (lagen, klassen).</td></tr>
+<tr><td><b>Systeemarchitectuur</b></td><td>Hoe meerdere apps/systemen samenwerken. Zichtbaar in het applicatielandschap.</td></tr>
+</table>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 14. REFERENTIEARCHITECTUUR & DAO ===== -->
+<div class="sec" id="s14">
+<div class="sec-title" style="border-color:#5DCAA5">14. Referentiearchitectuur & de DAO-laag</div>
+
+<div class="card">
+<div class="card-title">Wat is een referentiearchitectuur?</div>
+<div class="card-body">Een <b>referentiearchitectuur</b> is een standaard-bouwplan op hoger/abstracter niveau: een vaste set lagen met vaste verantwoordelijkheden, waar je elke applicatie in onderbrengt. In dit vak werk je met <b>4 lagen</b>.</div>
+<div class="explain">
+Je hoeft het wiel niet opnieuw uit te vinden: élke app stop je in dezelfde lagen. Een nieuwe collega snapt je code meteen, want hij kent de indeling al.
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">De 4 lagen — wie doet wat?</div>
+<div class="card-body">De 3 lagen ken je al (sectie 3). De <b>4e laag</b> (Data Storage) is nieuw en komt erbij zodra je data permanent wilt opslaan.</div>
+<table class="t">
+<tr><th>Laag</th><th>Wie zit erin</th><th>Verantwoordelijkheid</th></tr>
+<tr><td><b>Presentation</b></td><td>GUI-componenten (met ActionListener)</td><td>Alles van het scherm. Zo "dom" mogelijk.</td></tr>
+<tr><td><b>Application Logic</b></td><td>Managers (= service layer)</td><td>Logica op app-niveau, checks ("mag dit?"), delegeert opslag.</td></tr>
+<tr><td><b>Domain</b></td><td>Entiteiten (Member, Book…)</td><td>Weten alles van het domein: info + regels. Verder zo min mogelijk.</td></tr>
+<tr><td><b>Data Storage</b></td><td>DAO's, DatabaseConnection, DatabaseProperties</td><td>Álle kennis over opslag: SQL, connectie, database.</td></tr>
+</table>
+<div class="tip">💡 <b>Regel:</b> per persistente domeinklasse maak je <b>één DAO</b>. Naamgeving: <code>&lt;KlasseNaam&gt;DAO</code> → dus <code>MemberDAO</code>, <code>BookDAO</code>.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Verantwoordelijkheden — wie weet wat?</div>
+<div class="dw"><svg width="100%" viewBox="0 0 700 290">
+<defs>
+<marker id="arRA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5DCAA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect x="270" y="10" width="160" height="48" rx="8" fill="none" stroke="#85B7EB" stroke-width="1.5"/>
+<text x="350" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#85B7EB">Presentation</text>
+<text x="350" y="47" text-anchor="middle" font-size="10" fill="#85B7EB">GUI</text>
+<rect x="270" y="90" width="160" height="48" rx="8" fill="none" stroke="#EF9F27" stroke-width="1.5"/>
+<text x="350" y="110" text-anchor="middle" font-size="12" font-weight="700" fill="#EF9F27">Application Logic</text>
+<text x="350" y="127" text-anchor="middle" font-size="10" fill="#EF9F27">Manager</text>
+<rect x="120" y="180" width="160" height="48" rx="8" fill="none" stroke="#AFA9EC" stroke-width="1.5"/>
+<text x="200" y="200" text-anchor="middle" font-size="12" font-weight="700" fill="#AFA9EC">Domain</text>
+<text x="200" y="217" text-anchor="middle" font-size="10" fill="#AFA9EC">Entiteit</text>
+<rect x="420" y="180" width="160" height="48" rx="8" fill="none" stroke="#5DCAA5" stroke-width="1.5"/>
+<text x="500" y="200" text-anchor="middle" font-size="12" font-weight="700" fill="#5DCAA5">Data Storage</text>
+<text x="500" y="217" text-anchor="middle" font-size="10" fill="#5DCAA5">DAO → Database</text>
+<line x1="350" y1="58" x2="350" y2="88" stroke="#9c9a92" stroke-width="1.2" marker-end="url(#arRA)"/>
+<line x1="330" y1="138" x2="240" y2="178" stroke="#9c9a92" stroke-width="1.2" marker-end="url(#arRA)"/>
+<line x1="370" y1="138" x2="460" y2="178" stroke="#9c9a92" stroke-width="1.2" marker-end="url(#arRA)"/>
+<text x="255" y="160" font-size="9" fill="#9c9a92">gebruikt</text>
+<text x="430" y="160" font-size="9" fill="#9c9a92">delegeert opslag</text>
+</svg></div>
+<div class="explain">
+<b>Manager</b> weet zelf weinig, maar weet wél wáár hij info kan halen.<br>
+Op initiatief van de <b>GUI</b> haalt de Manager entiteiten op via de <b>DAO</b> en geeft die aan de presentation layer terug, die ze gebruikt om het scherm te tekenen.
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Ontwerpvolgorde + iteratief werken</div>
+<div class="card-body">In welke volgorde bouw je de lagen? En hoe pak je het slim aan?</div>
+<div class="stap"><div class="stap-num">1</div><div>Begin met de <b>Domain layer</b> (het hart).</div></div>
+<div class="stap"><div class="stap-num">2</div><div>Dan de <b>Application Logic layer</b> (de managers).</div></div>
+<div class="stap"><div class="stap-num">3</div><div>Daarna óf de <b>Presentation</b> óf de <b>Data Storage</b> layer.</div></div>
+<div class="good">✅ <b>Werk iteratief:</b> bouw telkens een werkende <b>verticale slice</b> — een dun plakje door álle lagen heen met één klein stukje werkende functionaliteit. Dus niet eerst álle entiteiten, dan álle managers… maar: één feature helemaal af, dan de volgende.</div>
+</div>
+
+<div class="card">
+<div class="card-title">ORM — opslag automatiseren</div>
+<div class="card-body">Een DAO-laag maken is bijna <b>mechanisch werk</b> (steeds dezelfde CRUD-acties). Dat kan dus geautomatiseerd worden.</div>
+<div class="explain">
+<b>ORM (Object-Relational Mapping)</b> = een tool die automatisch je objecten ↔ database-tabellen koppelt, zodat je geen SQL met de hand hoeft te schrijven.<br>
+Voorbeelden: <b>JPA, Hibernate, Entity Framework</b>.<br>
+Een DAO heet bij een ORM een <b>CRUD repository</b> (CRUD = Create, Read, Update, Delete).
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Meerdere databronnen → interface + DAO-variant</div>
+<div class="card-body">Wil je data uit een database <i>én</i> uit een file <i>én</i> uit een webservice halen? Twee opties:</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">❌ Eén DAO alles laten doen</div>
+  <div class="inner-body">De <code>MemberDAO</code> aanpassen zodat hij meerdere bronnen aankan.<br><br><b>Probleem:</b> hoe weet hij welke bron actief is? Hij krijgt meerdere verantwoordelijkheden (schendt SRP).</div>
+</div>
+<div class="inner">
+  <div class="inner-title">✅ Per bron een DAO-variant</div>
+  <div class="inner-body">Eén DAO per bron, allemaal achter dezelfde <b>interface</b>.<br><br><b>Voorwaarde:</b> de Manager mag er níéts van merken → "program to an interface". De Manager praat alleen met de interface.</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 15. RABBITMQ IN DETAIL ===== -->
+<div class="sec" id="s15">
+<div class="sec-title" style="border-color:#EF9F27">15. RabbitMQ — de begrippen in detail</div>
+
+<div class="card">
+<div class="card-title">Wat is RabbitMQ?</div>
+<div class="card-body">RabbitMQ is een <b>message broker</b>: een soort postkantoor dat berichten van producers aanneemt en bij de juiste consumers aflevert. Het gebruikt het protocol <b>AMQP</b>.</div>
+<div class="explain">
+<b>AMQP</b> (Advanced Message Queuing Protocol) is voor queues wat <b>HTTP</b> is voor webverkeer: de afspraak hóé producers en consumers met de broker praten.
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Hoe een bericht door RabbitMQ reist</div>
+<div class="dw"><svg width="100%" viewBox="0 0 700 200">
+<defs>
+<marker id="arRMQ" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect x="10" y="80" width="120" height="44" rx="8" fill="none" stroke="#85B7EB" stroke-width="1.5"/>
+<text x="70" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#85B7EB">Producer</text>
+<text x="70" y="116" text-anchor="middle" font-size="10" fill="#85B7EB">verstuurt</text>
+<rect x="200" y="80" width="120" height="44" rx="8" fill="none" stroke="#ED93B1" stroke-width="1.5"/>
+<text x="260" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#ED93B1">Exchange</text>
+<text x="260" y="116" text-anchor="middle" font-size="10" fill="#ED93B1">verdeelt</text>
+<rect x="390" y="80" width="120" height="44" rx="8" fill="none" stroke="#EF9F27" stroke-width="1.5"/>
+<text x="450" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#EF9F27">Queue</text>
+<text x="450" y="116" text-anchor="middle" font-size="10" fill="#EF9F27">wachtrij</text>
+<rect x="580" y="80" width="110" height="44" rx="8" fill="none" stroke="#5DCAA5" stroke-width="1.5"/>
+<text x="635" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#5DCAA5">Consumer</text>
+<text x="635" y="116" text-anchor="middle" font-size="10" fill="#5DCAA5">verwerkt</text>
+<line x1="130" y1="102" x2="198" y2="102" stroke="#EF9F27" stroke-width="1.2" marker-end="url(#arRMQ)"/>
+<line x1="320" y1="102" x2="388" y2="102" stroke="#EF9F27" stroke-width="1.2" marker-end="url(#arRMQ)"/>
+<text x="355" y="94" text-anchor="middle" font-size="9" fill="#9c9a92">routing key</text>
+<line x1="510" y1="102" x2="578" y2="102" stroke="#EF9F27" stroke-width="1.2" marker-end="url(#arRMQ)"/>
+<text x="544" y="94" text-anchor="middle" font-size="9" fill="#9c9a92">ack/nack</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="card-title">De RabbitMQ-begrippen op een rij</div>
+<table class="t">
+<tr><th>Begrip</th><th>Simpel uitgelegd</th></tr>
+<tr><td><b>AMQP</b></td><td>Het protocol voor queue-verkeer (vergelijkbaar met HTTP).</td></tr>
+<tr><td><b>Exchange</b></td><td>Het "sorteercentrum". Nodig voor <b>publish/subscribe</b> — ontkoppelt producer en consumer in gedrag. Voor <b>point-to-point</b> gebruik je de <b>default exchange</b>.</td></tr>
+<tr><td><b>Routing key</b></td><td>Een label dat de producer op het bericht plakt. De exchange beslist met dit label naar welke queue het gaat.</td></tr>
+<tr><td><b>Queue</b></td><td>De wachtrij waar berichten staan tot een consumer ze ophaalt (FIFO).</td></tr>
+<tr><td><b>ACK / NACK</b></td><td><b>Ack</b> = verwerkt, weg uit de queue. <b>Nack</b> = mislukt, opnieuw proberen.</td></tr>
+<tr><td><b>Dead-letter queue</b></td><td>Lukt een bericht na X pogingen nog niet, dan gaat het naar deze aparte queue. Daar kun je het inspecteren, opnieuw verwerken of weggooien — zo blokkeert het de gewone queue niet.</td></tr>
+</table>
+</div>
+
+<div class="card">
+<div class="card-title">Point-to-point vs Publish/Subscribe</div>
+<div class="two" style="margin-top:4px">
+<div class="inner">
+  <div class="inner-title">➡️ Point-to-point</div>
+  <div class="inner-body">Eén bericht → één queue → wordt door <b>één</b> consumer verwerkt.<br><br>Gebruikt de <b>default exchange</b>.<br><br><i>Voorbeeld:</i> "GameEnd" → queue → UpdateLeaderboard.</div>
+</div>
+<div class="inner">
+  <div class="inner-title">📢 Publish/Subscribe</div>
+  <div class="inner-body">Eén bericht → exchange → <b>meerdere</b> queues → meerdere consumers krijgen elk hun eigen kopie.<br><br>Heeft een <b>exchange</b> nodig.<br><br><i>Voorbeeld:</i> "GameEnd" → zowel UpdateLeaderboard áls NotifyViewers.</div>
+</div>
+</div>
+<div class="tip">💡 <b>Competing consumers:</b> zet je méér consumers op dezelfde queue, dan "vechten" ze om de berichten — elk bericht gaat naar precies één van hen. Handig om de last te verdelen (schaalbaarheid).</div>
+</div>
+
+<div class="card">
+<div class="card-title">Abstracties boven queues</div>
+<div class="card-body">Direct met queues werken betekent rommelen met bytes, verbindingen en kanalen. Er zijn libraries die dat makkelijker maken (een laag bovenop RabbitMQ e.d.).</div>
+<table class="t">
+<tr><th>Taal</th><th>Abstractie-library</th></tr>
+<tr><td>.NET (C#)</td><td><b>MassTransit</b></td></tr>
+<tr><td>Python</td><td><b>Celery</b></td></tr>
+<tr><td>TypeScript</td><td><b>BullMQ</b></td></tr>
+</table>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 16. THIN VS FAT & EVENT-DRIVEN ===== -->
+<div class="sec" id="s16">
+<div class="sec-title" style="border-color:#ED93B1">16. Thin vs Fat events & Event-driven architecture</div>
+
+<div class="card">
+<div class="card-title">Thin vs Fat events — hoeveel data stop je in een event?</div>
+<div class="card-body">Een event kan weinig (<b>thin</b>) of veel (<b>fat</b>) data bevatten. Beide hebben voor- en nadelen.</div>
+<div class="two" style="margin-top:8px">
+<div class="inner">
+  <div class="inner-title">🪶 Thin event (weinig data)</div>
+  <div class="inner-body"><code>{ eventType:"GameWon",<br>&nbsp;payload:{ gameId:"7791" } }</code><br><br>
+  <b>+</b> Klein schema → minder kans op <b>schema drift</b> (producer & consumer snappen hetzelfde).<br>
+  <b>+</b> Producer hoeft niet te bedenken wat consumers nodig hebben.<br>
+  <b>+</b> Minder stale data: consumer haalt zelf de verse data op.<br>
+  <b>−</b> Te weinig data → consumer moet <b>extra synchrone calls</b> doen → herintroduceert temporal coupling, slechter schaalbaar.</div>
+</div>
+<div class="inner">
+  <div class="inner-title">🍔 Fat event (veel data)</div>
+  <div class="inner-body"><code>{ eventType:"GameWon",<br>&nbsp;payload:{ gameId, winnerId,<br>&nbsp;username, finalScore, map…} }</code><br><br>
+  <b>+</b> Consumer is <b>zelfstandig</b>: geen extra calls nodig.<br>
+  <b>+</b> Betere <b>fault tolerance</b>: werkt ook als de producer even down is.<br>
+  <b>−</b> Infrastructuur verwerkt meer data dan nodig.<br>
+  <b>−</b> Data kan al <b>verouderd (stale)</b> zijn tegen de tijd dat hij verwerkt wordt.</div>
+</div>
+</div>
+<div class="explain"><b>Schema drift</b> = producer en consumer raken het oneens over hoe een bericht eruitziet (bv. producer voegt een veld toe dat de consumer niet kent).</div>
+</div>
+
+<div class="card">
+<div class="card-title">Wat betekent "event-driven"?</div>
+<div class="card-body">Een <b>event-driven</b> systeem reageert op wat er ís gebeurd, niet op wat er gevraagd wordt.</div>
+<div class="stap"><div class="stap-num">1</div><div>Systemen <b>reageren op gebeurtenissen</b>, niet op verzoeken.</div></div>
+<div class="stap"><div class="stap-num">2</div><div><b>Asynchrone</b> communicatie → losgekoppeld in tijd én gedrag.</div></div>
+<div class="stap"><div class="stap-num">3</div><div>Events zijn <b>first-class citizens</b>: ze worden expliciet afgehandeld en gaan niet zomaar verloren.</div></div>
+<div class="stap"><div class="stap-num">4</div><div>Events representeren <b>echte gebeurtenissen</b> uit de buitenwereld (GameEnded, OrderPlaced).</div></div>
+</div>
+
+<div class="card">
+<div class="card-title">Voor- en nadelen Event-Driven Architecture (EDA)</div>
+<table class="t">
+<tr><th>✅ Voordelen</th><th>❌ Nadelen</th></tr>
+<tr><td>
+Ontkoppeling in <b>tijd</b> (fault tolerance, recoverability) en <b>gedrag</b> (modularity, modifiability).<br><br>
+Beter <b>schaalbaar</b> (performance, availability, capacity).<br><br>
+Event = first-class citizen → gaat niet verloren.
+</td><td>
+In zijn geheel <b>lastiger te debuggen</b>.<br><br>
+Vraagt andere ontwerpkeuzes (wanneer is welke info beschikbaar?).<br><br>
+Vereist <b>backwards compatibility</b> → meer complexiteit.<br><br>
+Werkt het best met speciale infra (queues) → meer complexiteit. Volgorde lastiger te coördineren.
+</td></tr>
+</table>
+</div>
+
+<div class="card">
+<div class="card-title">Verwante "event"-begrippen (verschil kennen!)</div>
+<div class="card-body">De term "event" komt op meerdere plekken terug. Weet hóé ze verschillen van event-driven architecture.</div>
+<table class="t">
+<tr><th>Begrip</th><th>Simpel uitgelegd</th></tr>
+<tr><td><b>Eventual Consistency</b></td><td>Data is niet meteen overal gelijk, maar wordt het <i>uiteindelijk</i>. Gevolg van async werken: even geduld, dan klopt het overal.</td></tr>
+<tr><td><b>Event Sourcing</b></td><td>Je slaat niet de huidige toestand op, maar álle gebeurtenissen die ertoe leidden. De toestand bouw je op door de events opnieuw af te spelen.</td></tr>
+<tr><td><b>C# Events</b></td><td>Een taalfeature in C# (publisher/subscriber binnen één programma). Niet hetzelfde als events tussen systemen!</td></tr>
+<tr><td><b>Event Storming</b></td><td>Een workshop-techniek (met post-its) om samen een bedrijfsproces in kaart te brengen via de events die erin voorkomen.</td></tr>
+</table>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== 17. VISUALISATIES & REALISATIE VERANTWOORDING ===== -->
+<div class="sec" id="s17">
+<div class="sec-title" style="border-color:#97C459">17. Soorten visualisaties & Realisatie verantwoording</div>
+
+<div class="card">
+<div class="card-title">Welke visualisatie kies je wanneer?</div>
+<div class="card-body">Verschillende vragen vragen om verschillende diagrammen. Kies op basis van wat je wilt laten zien.</div>
+<table class="t">
+<tr><th>Wat wil je tonen?</th><th>Voorbeeld</th><th>Alternatief</th></tr>
+<tr><td>Hoe is het systeem <b>opgebouwd</b>?</td><td>C4-model</td><td>4+1-model, UML component-diagram</td></tr>
+<tr><td>Wat gebeurt er <b>als X plaatsvindt</b>?</td><td>Data Flow Diagram (DFD)</td><td>Sequentiediagram</td></tr>
+<tr><td>Hoe ziet het <b>landschap</b> eruit?</td><td>Applicatie-/systeemlandschap</td><td>Tool: FossFLOW</td></tr>
+</table>
+</div>
+
+<div class="card">
+<div class="card-title">Wat maakt een visualisatie goed?</div>
+<div class="card-body">Het doel van een visualisatie is <b>inzicht geven</b> — niet alles tot in detail tekenen.</div>
+<div class="good">✅ <b>Precies genoeg:</b> niet elke klasse, maar alleen de componenten die er architecturaal toe doen.</div>
+<div class="good">✅ <b>Geadresseerd:</b> een diagram voor een collega-engineer ziet er anders uit dan een diagram voor de opdrachtgever.</div>
+<div class="tip">💡 <b>Tip:</b> teken niet alleen lijnen, maar benoem ook wát een lijn doet of betekent — welke actie zit eronder, welk protocol gebruikt de verbinding?</div>
+</div>
+
+<div class="card">
+<div class="card-title">DeepWiki — een bestaande codebase analyseren</div>
+<div class="card-body">Bij architectuuranalyse mag je AI-ondersteuning gebruiken. <b>DeepWiki</b> (deepwiki.org) genereert van elke publieke repo automatisch documentatie in wiki-vorm, zodat je snel de opbouw en lagen van een systeem snapt.</div>
+</div>
+
+<div class="card">
+<div class="card-title">Realisatie verantwoording (rubric — apart toetsonderdeel)</div>
+<div class="card-body">Je mag AI-tools inzetten bij het project (niet verplicht). Maar je moet er wél op <b>reflecteren</b>.</div>
+<div class="explain">
+Beantwoord voor jezelf:<br>
+• Wat betekent het voor je <b>(on)afhankelijkheid</b>?<br>
+• Welke <b>tijdsbesparing</b> heb je (niet) gehaald?<br>
+• Wat is je <b>advies</b> voor toekomstige projecten?
+</div>
+<div class="warn">⚠️ <b>Deliverables:</b> de <b>groep</b> levert een beschrijving van de ingezette tooling aan (System Instructions, Rules, Guidelines, prompt logs). <b>Individueel</b> kun je tijdens de toets bovenstaande reflectievragen verwachten.</div>
+</div>
+</div>
+
+</div>
+</body>
+</html>
