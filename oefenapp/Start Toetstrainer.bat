@@ -20,8 +20,8 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8765" ^| findstr "LISTENING
 
 start "SAAI Server" /min "%~dp0server.bat"
 ping -n 3 127.0.0.1 >nul
-start "" http://localhost:8765
+start "" http://localhost:8765/oefenapp/
 
-echo  Browser geopend: http://localhost:8765
+echo  Browser geopend: http://localhost:8765/oefenapp/
 echo  Server draait op de achtergrond.
 timeout /t 3 >nul

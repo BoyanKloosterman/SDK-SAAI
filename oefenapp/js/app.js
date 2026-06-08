@@ -91,6 +91,12 @@ const App = {
           <div class="stat"><span class="stat-num">${answered}</span><span class="stat-label">geoefend</span></div>
           <div class="stat"><span class="stat-num">${avgScore}%</span><span class="stat-label">gem. score</span></div>
         </div>
+        <div class="hero-actions">
+          <a href="../samenvatting_sdk_saai_v5.html" target="_blank" rel="noopener" class="mode-btn primary">
+            <strong>Samenvatting openen</strong>
+            <span>Volledige theorie — 17 secties</span>
+          </a>
+        </div>
       </section>
 
       <section class="modes">

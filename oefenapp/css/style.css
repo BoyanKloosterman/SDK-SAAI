@@ -133,6 +133,15 @@ body {
   color: var(--text2);
 }
 
+.hero-actions {
+  max-width: 320px;
+}
+
+a.mode-btn {
+  display: block;
+  text-decoration: none;
+}
+
 .modes, .categories {
   margin-bottom: 32px;
 }
