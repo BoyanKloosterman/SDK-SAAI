@@ -18,7 +18,6 @@ if errorlevel 1 (
 REM Oude server op poort 8765 stoppen
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8765" ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>&1
 
-REM Server via apart bat-bestand (werkt met & in pad)
 start "SAAI Server" /min "%~dp0server.bat"
 ping -n 3 127.0.0.1 >nul
 start "" http://localhost:8765
