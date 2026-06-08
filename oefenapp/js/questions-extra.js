@@ -598,15 +598,15 @@ const MCQ_ONLY_IDS = new Set([
   'msg-01','msg-02','msg-03','msg-04','msg-05','msg-06','msg-07',
 ]);
 
-// Examen: 7 vragen — 2 MC samen 0,5 pt, ADR 50%, rest open (schaal 10 pt)
+// Examen: 7 vragen — 2 MC (0,5 pt), 2 ADR (50%), 3 open — verdeeld over samenvatting-secties
 const EXAM_SLOTS = [
   { slot: 'mcq', weight: 0.25, label: 'Vraag 1' },
   { slot: 'mcq', weight: 0.25, label: 'Vraag 2' },
-  { slot: 'open-multi', weight: 1.5, label: 'Vraag 3' },
+  { slot: 'open', weight: 1.5, label: 'Vraag 3', preferType: 'open-multi' },
   { slot: 'adr', weight: 2.5, label: 'Vraag 4' },
   { slot: 'adr', weight: 2.5, label: 'Vraag 5' },
-  { slot: 'pseudocode', weight: 1.5, label: 'Vraag 6' },
-  { slot: 'pseudocode', weight: 1.5, label: 'Vraag 7' },
+  { slot: 'open', weight: 1.5, label: 'Vraag 6' },
+  { slot: 'open', weight: 1.5, label: 'Vraag 7' },
 ];
 
 // Vaste set = jouw echte toets (via getReferenceExamQuestions)
@@ -667,7 +667,8 @@ const ADR_RUBRIC_UPGRADES = {
 
 // Merge alles
 function buildQuestionBank() {
-  const all = [...QUESTIONS, ...QUESTIONS_EXTRA];
+  const samenvatting = typeof QUESTIONS_SAMENVATTING !== 'undefined' ? QUESTIONS_SAMENVATTING : [];
+  const all = [...QUESTIONS, ...QUESTIONS_EXTRA, ...samenvatting];
   all.forEach((q) => {
     if (ADR_RUBRIC_UPGRADES[q.id] && q.rubric) {
       q.rubric = { ...q.rubric, ...ADR_RUBRIC_UPGRADES[q.id] };
@@ -701,34 +702,59 @@ function shuffleArray(arr) {
 function getExamPool(slot) {
   switch (slot) {
     case 'mcq':
-      return ALL_QUESTIONS.filter((q) => q.type === 'mcq');
-    case 'open-multi':
-      return ALL_QUESTIONS.filter((q) => q.type === 'open-multi');
+      return ALL_QUESTIONS.filter((q) =>
+        ['mcq', 'code-analysis', 'uml-relation', 'factory-uml', 'ordering'].includes(q.type)
+      );
+    case 'open':
+      return ALL_QUESTIONS.filter((q) =>
+        ['open-multi', 'open-write', 'open-identify', 'pseudocode-write'].includes(q.type)
+      );
     case 'adr':
       return ALL_QUESTIONS.filter((q) => q.type === 'adr-write');
-    case 'pseudocode':
-      return ALL_QUESTIONS.filter((q) => q.type === 'pseudocode-write');
     default:
       return [];
   }
 }
 
 function examNoteForSlot(slot, q) {
-  const cat = (typeof QUESTION_CATEGORIES !== 'undefined' && QUESTION_CATEGORIES[q.category])
-    ? QUESTION_CATEGORIES[q.category].label
-    : q.category;
+  const section = typeof getQuestionTopic === 'function' ? getSectionLabel(getQuestionTopic(q)) : '';
+  const sectionSuffix = section ? ` — ${section}` : '';
   switch (slot) {
     case 'mcq':
-      return `Meerkeuze (0,25 pt) — ${cat}`;
-    case 'open-multi':
-      return 'Open deelvragen (1,5 pt)';
+      return `Meerkeuze (0,25 pt)${sectionSuffix}`;
+    case 'open':
+      if (q.type === 'open-multi') return `Open deelvragen (1,5 pt)${sectionSuffix}`;
+      if (q.type === 'pseudocode-write') return `Open pseudocode (1,5 pt)${sectionSuffix}`;
+      return `Open vraag (1,5 pt)${sectionSuffix}`;
     case 'adr':
-      return 'ADR legacy (2,5 pt)';
-    case 'pseudocode':
-      return 'Open pseudocode (1,5 pt)';
+      return `ADR legacy (2,5 pt)${sectionSuffix}`;
     default:
-      return '';
+      return sectionSuffix.replace(/^ — /, '');
   }
+}
+
+// Kies vraag met voorkeur voor nog niet gebruikte samenvatting-secties
+function pickExamQuestion(pool, usedSections, preferType, forceSections) {
+  const available = pool.filter(Boolean);
+  if (!available.length) return null;
+
+  let candidates = available;
+  if (forceSections && forceSections.length) {
+    const forced = available.filter((q) => forceSections.includes(getQuestionTopic(q)));
+    if (forced.length) candidates = forced;
+  }
+
+  const scored = candidates.map((q) => {
+    const topic = getQuestionTopic(q);
+    let score = Math.random();
+    if (!usedSections.has(topic)) score += 12;
+    if (preferType && q.type === preferType) score += 6;
+    if (preferType === 'open-multi' && q.type === 'open-multi') score += 4;
+    return { q, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0].q;
 }
 
 function mapExamConfig(cfgList) {
@@ -738,25 +764,34 @@ function mapExamConfig(cfgList) {
   }).filter(Boolean);
 }
 
-// Willekeurig examen — elke start andere vragen, zelfde opbouw
+// Willekeurig examen — 2 ADR vast, rest verdeeld over samenvatting-secties 1–17
 function buildRandomExam() {
   const used = new Set();
+  const usedSections = new Set();
   const result = [];
 
   EXAM_SLOTS.forEach((slot) => {
-    const pool = shuffleArray(getExamPool(slot.slot).filter((q) => !used.has(q.id)));
-    const q = pool[0];
+    const pool = getExamPool(slot.slot).filter((q) => !used.has(q.id));
+    const forceSections = slot.slot === 'adr' ? ['s10'] : [];
+    const q = pickExamQuestion(pool, usedSections, slot.preferType || null, forceSections);
     if (!q) return;
     used.add(q.id);
+    usedSections.add(getQuestionTopic(q));
     result.push({
       ...q,
       examLabel: slot.label,
       examWeight: slot.weight,
       examNote: examNoteForSlot(slot.slot, q),
+      examSection: getQuestionTopic(q),
     });
   });
 
-  return result.length ? result : mapExamConfig(EXAM_REFERENCE);
+  return result.length >= EXAM_SLOTS.length ? result : mapExamConfig(EXAM_REFERENCE);
+}
+
+// Vragen per samenvatting-sectie (voor oefenen per onderwerp)
+function getQuestionsBySection(sectionId) {
+  return ALL_QUESTIONS.filter((q) => getQuestionTopic(q) === sectionId);
 }
 
 function getExamQuestions() {

@@ -60,6 +60,7 @@ const App = {
     let categoryCards = '';
     Object.entries(QUESTION_CATEGORIES).forEach(([key, cat]) => {
       const count = all.filter((q) => q.category === key).length;
+      if (!count) return;
       categoryCards += `
         <button class="cat-card" data-cat="${key}" style="--accent:${cat.color}">
           <span class="cat-label">${cat.label}</span>
@@ -67,10 +68,23 @@ const App = {
         </button>`;
     });
 
+    let sectionCards = '';
+    if (typeof SUMMARY_SECTIONS !== 'undefined' && typeof getQuestionsBySection === 'function') {
+      Object.entries(SUMMARY_SECTIONS).forEach(([key, sec]) => {
+        const count = getQuestionsBySection(key).length;
+        if (!count) return;
+        sectionCards += `
+          <button class="cat-card" data-section="${key}" style="--accent:${sec.color}">
+            <span class="cat-label">${sec.num}. ${sec.label}</span>
+            <span class="cat-count">${count} vragen</span>
+          </button>`;
+      });
+    }
+
     main.innerHTML = `
       <section class="hero">
         <h2>SDK & SAAI Toetstrainer</h2>
-        <p>7 vragen per ronde — 2 meerkeuze (0,5 pt), ADR 50%, rest open. Elke keer willekeurig uit de examenpool.</p>
+        <p>7 vragen per ronde — 2 meerkeuze (0,5 pt), 2 ADR (50%), 3 open. Vragen verdeeld over alle 17 samenvatting-secties.</p>
         <div class="stats">
           <div class="stat"><span class="stat-num">${openCount}</span><span class="stat-label">open</span></div>
           <div class="stat"><span class="stat-num">${mcqCount}</span><span class="stat-label">meerkeuze</span></div>
@@ -106,7 +120,12 @@ const App = {
       </section>
 
       <section class="categories">
-        <h3>Per onderwerp</h3>
+        <h3>Per samenvatting-sectie</h3>
+        <div class="cat-grid">${sectionCards || categoryCards}</div>
+      </section>
+
+      <section class="categories">
+        <h3>Per vraagtype</h3>
         <div class="cat-grid">${categoryCards}</div>
       </section>
 
@@ -135,8 +154,11 @@ const App = {
     document.getElementById('btn-adr').addEventListener('click', () => this.startCategory('adr'));
     document.getElementById('btn-all').addEventListener('click', () => this.startMode('all'));
     document.getElementById('btn-weak').addEventListener('click', () => this.startMode('weak'));
-    document.querySelectorAll('.cat-card').forEach((btn) => {
+    document.querySelectorAll('.cat-card[data-cat]').forEach((btn) => {
       btn.addEventListener('click', () => this.startCategory(btn.dataset.cat));
+    });
+    document.querySelectorAll('.cat-card[data-section]').forEach((btn) => {
+      btn.addEventListener('click', () => this.startSection(btn.dataset.section));
     });
 
     const saveKeyBtn = document.getElementById('btn-save-key');
@@ -184,7 +206,17 @@ const App = {
   },
 
   startCategory(cat) {
-    this.startQuiz(this.getAllQuestions().filter((q) => q.category === cat), 'category');
+    const questions = this.getAllQuestions().filter((q) => q.category === cat);
+    if (!questions.length) { alert('Geen vragen in deze categorie.'); return; }
+    this.startQuiz(questions, 'category');
+  },
+
+  startSection(sectionId) {
+    const questions = typeof getQuestionsBySection === 'function'
+      ? getQuestionsBySection(sectionId)
+      : [];
+    if (!questions.length) { alert('Geen vragen voor deze samenvatting-sectie.'); return; }
+    this.startQuiz(questions, 'section');
   },
 
   startQuiz(questions, mode) {
@@ -203,7 +235,12 @@ const App = {
     const q = this.state.questions[this.state.currentIndex];
     if (!q) return this.renderResults();
 
-    const cat = QUESTION_CATEGORIES[q.category];
+    const cat = QUESTION_CATEGORIES[q.category] || { label: q.category, color: '#9c9a92' };
+    const secLabel = q.examSection && typeof SUMMARY_SECTIONS !== 'undefined' && SUMMARY_SECTIONS[q.examSection]
+      ? SUMMARY_SECTIONS[q.examSection].label
+      : (typeof getQuestionTopic === 'function' && typeof SUMMARY_SECTIONS !== 'undefined'
+        ? (SUMMARY_SECTIONS[getQuestionTopic(q)] || {}).label
+        : null);
     const main = document.getElementById('main');
     const progress = ((this.state.currentIndex + 1) / this.state.questions.length) * 100;
     document.getElementById('progress-fill').style.width = `${progress}%`;
@@ -217,7 +254,7 @@ const App = {
     let body = `
       <div class="question-card">
         <div class="q-meta">
-          <span class="q-cat" style="background:${cat.color}22;color:${cat.color}">${cat.label}</span>
+          <span class="q-cat" style="background:${cat.color}22;color:${cat.color}">${secLabel || cat.label}</span>
           <span class="q-type">${this.typeLabel(q.type)}</span>
           ${examBadge}
         </div>
@@ -568,12 +605,13 @@ const App = {
     const rows = questions.map((q) => {
       const r = this.state.results[q.id];
       const score = r ? r.score : '-';
-      const cat = QUESTION_CATEGORIES[q.category];
+      const cat = QUESTION_CATEGORIES[q.category] || { label: q.category, color: '#9c9a92' };
+      const sec = typeof getQuestionTopic === 'function' ? getSectionLabel(getQuestionTopic(q)) : cat.label;
       const label = q.examLabel || this.typeLabel(q.type);
       const weight = q.examWeight ? ` (${String(q.examWeight).replace('.', ',')} pt)` : '';
       return `<tr>
         <td>${label}${weight}</td>
-        <td><span style="color:${cat.color}">${cat.label}</span></td>
+        <td><span style="color:${cat.color}">${sec}</span></td>
         <td class="score-cell ${r && r.score >= 70 ? 'pass' : 'fail'}">${score}${r ? '%' : ''}</td>
       </tr>`;
     }).join('');

@@ -7,6 +7,10 @@ const QUESTION_CATEGORIES = {
   adr: { label: 'Nygard ADR', color: '#C084FC' },
   factory: { label: 'Factory & Pseudocode', color: '#34D399' },
   messaging: { label: 'Messaging & Integratie', color: '#FBBF24' },
+  concepts: { label: 'Snelle begrippen', color: '#97C459' },
+  refactoring: { label: 'Refactoring & SRP', color: '#60A5FA' },
+  architecture: { label: 'Architectuur', color: '#85B7EB' },
+  visualization: { label: 'Visualisaties', color: '#97C459' },
 };
 
 const QUESTIONS = [
