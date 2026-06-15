@@ -69,6 +69,36 @@ Geef ALLEEN geldig JSON, geen markdown:
     return { system, user, criteria };
   },
 
+  buildAdrPrompt(question, userAnswer) {
+    const rubric = question.rubric || {};
+    const sysCtx = question.systemContext || '';
+    const best = rubric.bestSolution || '';
+    const problem = (rubric.problemMustMention || []).join(', ');
+    const alts = (rubric.alternativesExpected || []).slice(0, 5).join(', ');
+
+    const system = `Je bent examinator voor SDK & SAAI (Nederland). Beoordeel een Nygard ADR INHOUDELIJK én op verplichte structuur.
+
+HARD REQUIREMENTS (score max 65 als niet voldaan):
+1. ## Decision: minimaal 2 concrete beslissingen (aparte keuzes of implementatieregels, bijv. technologie + werkwijze)
+2. ## Consequences: minimaal 1 voordeel met + en minimaal 1 nadeel met -
+3. Nygard-secties: titel (#), Status, Context, Decision, Consequences
+4. Context: kernprobleem + minimaal 2 overwogen alternatieven
+
+Beoordeel ook of de gekozen oplossing past bij het legacy-scenario (temporal coupling, offline legacy, etc.).
+
+Geef ALLEEN geldig JSON:
+{"score":0-100,"correct":true/false,"structureOk":true/false,"feedback":["max 6 punten NL"],"missing":["ontbreekt"],"strengths":["goed"]}`;
+
+    const user = `${sysCtx ? 'SYSTEEMCONTEXT:\n' + sysCtx + '\n\n' : ''}SCENARIO:\n${question.question}\n\n${problem ? 'KERNPROBLEEM MOET BENOEMD WORDEN: ' + problem + '\n' : ''}${alts ? 'VERWACHTE ALTERNATIEVEN IN CONTEXT: ' + alts + '\n' : ''}${best ? 'BESTE RICHTING (referentie): ' + best + '\n' : ''}
+MODELANTWOORD:\n${question.modelAnswer || ''}
+
+STUDENT-ADR:\n${userAnswer || '(leeg)'}
+
+Score 70+ alleen als structuur én inhoud voldoende zijn. Zet structureOk=false als Decision <2 beslissingen heeft of Consequences geen + én - heeft.`;
+
+    return { system, user, criteria: question.modelAnswer || '' };
+  },
+
   buildMultiPrompt(question, answers) {
     const parts = (question.parts || []).map((p) => {
       const ans = answers[p.key] || '(leeg)';
@@ -208,6 +238,21 @@ Geef ALLEEN JSON:
     const { system, user, criteria } = this.buildPrompt(question, userAnswer, partContext);
     const parsed = await this.callApi(system, user);
     return this.parseResult(parsed, criteria);
+  },
+
+  async gradeAdr(question, userAnswer) {
+    const { system, user, criteria } = this.buildAdrPrompt(question, userAnswer);
+    const parsed = await this.callApi(system, user);
+    const result = this.parseResult(parsed, criteria);
+    result.aiReviewed = true;
+    if (parsed.structureOk === false) {
+      result.score = Math.min(result.score, 65);
+      result.correct = result.score >= 70;
+      if (!result.feedback.some((f) => f.toLowerCase().includes('structuur'))) {
+        result.feedback.unshift('Structuur onvoldoende: min. 2 beslissingen in Decision en min. 1 + / 1 - in Consequences.');
+      }
+    }
+    return result;
   },
 
   async gradeMulti(question, answers) {

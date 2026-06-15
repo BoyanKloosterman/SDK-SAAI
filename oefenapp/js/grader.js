@@ -11,6 +11,89 @@ const Grader = {
     });
   },
 
+  // Nygard-sectie uit markdown halen
+  extractAdrSection(answer, name) {
+    const re = new RegExp(`##\\s*${name}\\s*\\n([\\s\\S]*?)(?=\\n##\\s|$)`, 'i');
+    const m = (answer || '').match(re);
+    return m ? m[1].trim() : '';
+  },
+
+  // Minimaal 2 concrete keuzes in Decision
+  countAdrDecisionItems(text) {
+    if (!text) return 0;
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const bullets = lines.filter((l) => /^[-*•]\s+|^\d+[.)]\s+/.test(l));
+    if (bullets.length >= 2) return bullets.length;
+
+    const sentences = text
+      .split(/(?<=[.!?])\s+|\n+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 12);
+    const verbHits = sentences.filter((s) =>
+      /\b(gebruik|kiezen|kozen|implement|bouwen|plaats|verwerk|introduc|adopt|stellen|besluit|public|consumeer)\w*/i.test(s)
+    );
+    if (verbHits.length >= 2) return verbHits.length;
+    if (sentences.length >= 2) return 2;
+    return sentences.length || (text.length > 40 ? 1 : 0);
+  },
+
+  // Minimaal 1 voordeel (+) en 1 nadeel (-) in Consequences
+  countAdrProCon(text) {
+    if (!text) return { pros: 0, cons: 0 };
+    let pros = 0;
+    let cons = 0;
+
+    text.split('\n').forEach((line) => {
+      const t = line.trim();
+      if (/^\+/.test(t) && t.length > 2) pros++;
+      else if (/^[-–—]/.test(t) && !/^---/.test(t) && t.length > 2) cons++;
+    });
+
+    const plusLines = (text.match(/^\s*\+/gm) || []).length;
+    const minusLines = (text.match(/^\s*-(?!\s*-)\S/gm) || []).length;
+    pros = Math.max(pros, plusLines);
+    cons = Math.max(cons, minusLines);
+
+    const norm = this.normalize(text);
+    if (pros === 0 && /voordeel|positief/.test(norm)) pros = 1;
+    if (cons === 0 && /nadeel|negatief/.test(norm)) cons = 1;
+
+    return { pros, cons };
+  },
+
+  validateAdrStructure(answer) {
+    const decisionText = this.extractAdrSection(answer, 'decision');
+    const consText = this.extractAdrSection(answer, 'consequences');
+    const decisionCount = this.countAdrDecisionItems(decisionText);
+    const { pros, cons } = this.countAdrProCon(consText);
+    const issues = [];
+
+    if (decisionCount < 2) {
+      issues.push(`Decision: minimaal 2 concrete beslissingen (nu ${decisionCount}).`);
+    }
+    if (pros < 1) issues.push('Consequences: minimaal 1 voordeel (+) ontbreekt.');
+    if (cons < 1) issues.push('Consequences: minimaal 1 nadeel (-) ontbreekt.');
+
+    return { decisionCount, pros, cons, issues, valid: issues.length === 0 };
+  },
+
+  applyAdrStructureToResult(result, answer) {
+    const structure = this.validateAdrStructure(answer);
+    if (structure.valid) {
+      result.feedback = result.feedback || [];
+      if (!result.feedback.some((f) => f.includes('2 concrete beslissing'))) {
+        result.feedback.push(`Structuur OK: ${structure.decisionCount} beslissing(en), ${structure.pros} voordeel-regel(s), ${structure.cons} nadeel-regel(s).`);
+      }
+      return result;
+    }
+
+    result.feedback = [...structure.issues, ...(result.feedback || [])];
+    result.score = Math.min(result.score ?? 100, 65);
+    result.correct = (result.score ?? 0) >= 70;
+    result.structureOk = false;
+    return result;
+  },
+
   grade(question, userAnswer) {
     switch (question.type) {
       case 'mcq': return this.gradeMcq(question, userAnswer);
@@ -297,8 +380,11 @@ const Grader = {
         if (q.type === 'open-multi') {
           return await this.gradeOpenMultiAi(q, answer);
         }
-        const result = await AiGrader.grade(q, answer);
+        const result = q.type === 'adr-write'
+          ? await AiGrader.gradeAdr(q, answer)
+          : await AiGrader.grade(q, answer);
         result.feedback = result.feedback?.length ? result.feedback : ['AI-beoordeling voltooid.'];
+        if (q.type === 'adr-write') return this.applyAdrStructureToResult(result, answer);
         return result;
       } catch (err) {
         const local = this.grade(q, answer);
@@ -448,19 +534,32 @@ const Grader = {
       feedback.push(`Betere richting: ${rubric.bestSolution}`);
     }
 
-    // --- CONSEQUENCES (20 punten) ---
-    const hasPos = (rubric.consequencePositive || []).some((kw) => norm.includes(kw));
-    const hasNeg = (rubric.consequenceNegative || []).some((kw) => norm.includes(kw));
-    const hasPlusMinus = /\+[\s\S]*-|positief[\s\S]*negatief|voordeel[\s\S]*nadeel/i.test(answer);
-
-    if (hasPos && (hasNeg || hasPlusMinus)) {
-      consequenceScore = 20;
-      feedback.push('Consequences: voor- én nadelen benoemd.');
-    } else if (hasPos || hasNeg || hasPlusMinus) {
-      consequenceScore = 10;
-      feedback.push('Consequences: noem zowel + als - gevolgen.');
+    // --- DECISION-STRUCTUUR (min. 2 beslissingen) ---
+    const structure = this.validateAdrStructure(answer);
+    if (structure.decisionCount >= 2) {
+      feedback.push(`Decision: ${structure.decisionCount} concrete beslissing(en).`);
     } else {
-      feedback.push('Consequences ontbreken of zijn te vaag.');
+      formatScore = Math.max(0, formatScore - 8);
+      feedback.push(`Decision: minimaal 2 concrete beslissingen (nu ${structure.decisionCount}). Bijv. technologie + werkwijze.`);
+    }
+
+    // --- CONSEQUENCES (20 punten) — min. 1 voordeel en 1 nadeel ---
+    const hasPosKw = (rubric.consequencePositive || []).some((kw) => norm.includes(kw));
+    const hasNegKw = (rubric.consequenceNegative || []).some((kw) => norm.includes(kw));
+    const hasPro = structure.pros >= 1;
+    const hasCon = structure.cons >= 1;
+
+    if (hasPro && hasCon) {
+      consequenceScore = 20;
+      feedback.push(`Consequences: ${structure.pros} voordeel(en) en ${structure.cons} nadeel(en).`);
+    } else if ((hasPro || hasCon) && (hasPosKw || hasNegKw)) {
+      consequenceScore = 10;
+      feedback.push('Consequences: gebruik expliciet + voor voordelen en - voor nadelen (minimaal 1 van elk).');
+    } else if (hasPro || hasCon || hasPosKw || hasNegKw) {
+      consequenceScore = 6;
+      feedback.push('Consequences: minimaal 1 voordeel (+) én 1 nadeel (-) verplicht.');
+    } else {
+      feedback.push('Consequences ontbreken — voeg minimaal 1 + en 1 - toe.');
     }
 
     const score = Math.min(100, formatScore + contextScore + solutionScore + consequenceScore);

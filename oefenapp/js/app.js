@@ -385,7 +385,7 @@ const App = {
     if (q.type === 'adr-write') {
       return `<div class="adr-template">
           <button type="button" class="tpl-btn" id="insert-adr-template">Nygard template invoegen</button>
-          <span class="hint">Je ADR wordt nagekeken op format én of je oplossing past bij het legacy-probleem.</span>
+          <span class="hint">Verplicht: min. 2 concrete beslissingen in Decision, min. 1 voordeel (+) en 1 nadeel (-) in Consequences.</span>
         </div>
         <textarea class="text-answer adr-answer" id="text-answer" rows="18"
           placeholder="Schrijf je Nygard ADR...">${saved || ''}</textarea>`;
@@ -449,7 +449,23 @@ const App = {
     const tplBtn = document.getElementById('insert-adr-template');
     if (tplBtn) {
       tplBtn.addEventListener('click', () => {
-        const tpl = `# [Titel]\n\n## Status\nProposed\n\n## Context\n[Probleem, legacy-situatie, overwogen alternatieven]\n\n## Decision\n[Concrete keuze]\n\n## Consequences\n+ [voordeel]\n- [nadeel]`;
+        const tpl = `# [Titel]
+
+## Status
+Proposed
+
+## Context
+[Probleem, legacy-situatie, minimaal 2 overwogen alternatieven]
+
+## Decision
+1. [Eerste concrete keuze — bijv. welke technologie]
+2. [Tweede concrete keuze — bijv. hoe het werkt / werkwijze]
+
+## Consequences
++ [voordeel 1]
++ [voordeel 2 — optioneel]
+- [nadeel 1]
+- [nadeel 2 — optioneel]`;
         textarea.value = tpl;
         this.state.answers[q.id] = tpl;
       });
