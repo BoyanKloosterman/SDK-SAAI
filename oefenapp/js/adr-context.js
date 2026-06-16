@@ -1,286 +1,258 @@
-// Uitgebreide systeemcontext + diagrammen bij ADR-scenario's
-const ADR_CONTEXT = {
-  'adr-04': {
-    systemContext: `## Het systeem — huidige situatie
+// Gedeelde casuscontext — deel 1 (ADR 1) en deel 2 (ADR 2) per casus
+const ADR_CONTEXT = {};
 
-**Legacy bibliotheeksysteem (COBOL monolith)**
-- Beheert: leden, boeken, uitleningen, reserveringen
-- Draait on-premise op mainframe/server
-- Alleen bereikbaar via oud SOAP/REST-endpoint (soms offline voor batch-jobs 's nachts)
-- Geen message queue, geen events
+const ADR_CASUS = {
+  'adr-casus-01': {
+    systemContext: `## Casus — deel 1: legacy ERP en Order Service
 
-**Nieuwe webshop**
-- Moderne Java/Spring backend + React frontend
-- Moet bij bestelling controleren of boek beschikbaar is en uitlening registreren in legacy
+**Legacy ERP-monolith (15+ jaar)**
+- Orders, voorraad en facturatie in Oracle DB
+- Geen message queue — alleen synchrone SOAP/REST
+- Elke nacht 01:00–04:00 offline (batch)
+- Mag niet worden herschreven (finance-kritisch)
 
-**Huidige koppeling (voorstel team)**
-- Webshop roept legacy direct aan via synchrone REST
-- Bij timeout of offline legacy → hele checkout faalt (500 error naar klant)
+**Nieuwe Order Service (jullie module)**
+- Spring Boot — centrale orderverwerking
+- Valideert orders in ERP vóór doorsturen naar extern fulfillment
 
-## Problemen (waarom ADR nodig is)
+**Extern Fulfillment SaaS**
+- Cloud REST API van logistieke partner
+- (Komt in deel 2 aan bod — nu focus op ERP-koppeling)
+
+## Huidige koppeling Order Service → ERP
+
+\`\`\`
+Webshop → Order Service → sync REST → Legacy ERP
+\`\`\`
+
+| Probleem | Impact |
+|----------|--------|
+| **Temporal coupling** | ERP offline = mislukte orders, checkout faalt |
+| Geen buffer | Geen retry zonder checkout te blokkeren |
+| Tight coupling | Order Service kent ERP-contract direct |
+
+## Jouw opdracht — ADR 1
+
+Leg vast hoe je **Order Service ↔ Legacy ERP** ontkoppelt in **tijd** (temporal decoupling). Overwogen: sync REST, point-to-point queue, nachtelijke batch.`,
+    systemContextPart2: `## Casus — deel 2: informeren na verzending
+
+**Situatie na ADR 1**
+- Order Service ↔ ERP loopt via RabbitMQ queue (temporal decoupling opgelost)
+- Orders worden asynchroon verwerkt wanneer ERP online is
+
+**Nieuw probleem — behavioral coupling**
+Na verzending moeten **drie systemen** reageren:
+- **Fulfillment SaaS** (extern) — picklist/status
+- **Magazijn-app** (intern) — voorraadmutatie
+- **Marketing** — "recent verzonden"-feed
+
+Nu roept Order Service alles **synchroon REST** aan. Nieuw magazijn-systeem erbij = Order Service opnieuw aanpassen.
+
+\`\`\`
+Order Service → sync REST → Fulfillment SaaS
+              → sync REST → Magazijn
+              → sync REST → Marketing
+\`\`\`
+
+| Probleem | Term uit de les |
+|----------|-----------------|
+| Behavioral coupling | Producer kent alle consumers |
+| Point-to-point | N×M koppelingen — schaalt niet |
+
+## Jouw opdracht — ADR 2
+
+Leg vast hoe je **intern + extern** informeert na verzending — **bouwt voort op ADR 1**. Overwogen: meer P2P REST, point-to-point queues, pub/sub exchange met \`OrderShipped\` event.`,
+    uml: `flowchart TB
+    subgraph huidig [Huidige situatie - sync P2P]
+      WS[Webshop]
+      OS[Order Service]
+      ERP[Legacy ERP]
+      FF[Fulfillment SaaS extern]
+      WS --> OS
+      OS -->|sync REST| ERP
+      OS -->|sync REST| FF
+    end
+    subgraph gewenst [Richting messaging]
+      OS2[Order Service]
+      Q[(RabbitMQ queue)]
+      EX[Exchange pub/sub]
+      OS2 --> Q
+      OS2 -->|OrderShipped| EX
+    end`,
+    umlPart2: `flowchart TB
+    OS[Order Service]
+    EX[RabbitMQ Exchange]
+    FF[Fulfillment SaaS]
+    WH[Magazijn]
+    MK[Marketing]
+    OS -->|OrderShipped event| EX
+    EX --> FF
+    EX --> WH
+    EX --> MK`,
+  },
+
+  'adr-casus-02': {
+    systemContext: `## Casus — deel 1: GameEnd en leaderboard (temporal coupling)
+
+**Game Server**
+- Na elke wedstrijd: \`GameEnd()\`
+- Roept **synchroon** \`UpdateLeaderboard()\` aan (~30 seconden)
+- Bij piek: **100 wedstrijden/minuut**
+- Leaderboard-service soms offline → hele \`GameEnd\` faalt
+
+**Legacy leaderboard**
+- Monolith, moeilijk te schalen
+- Geen async API
+
+## Probleem (les: temporal coupling)
+
 | Probleem | Uitleg |
 |----------|--------|
-| Temporal coupling | Webshop en legacy moeten tegelijk online zijn |
-| Geen buffering | Geen queue → data verloren bij storing |
-| Tight coupling | Webshop kent legacy URL, payload-formaat, foutcodes |
-| Geen retry-logica | Eén mislukte call = mislukte bestelling |
+| Temporal coupling | Game server wacht op leaderboard |
+| Cascade | Langzame call blokkeert hele GameEnd |
+| Offline leaderboard | Geen games kunnen eindigen |
 
-## Overwogen alternatieven
-1. **Directe REST** — simpel maar temporal coupling blijft
-2. **RabbitMQ queue** — async, berichten bewaard
-3. **Nachtelijke batch (CSV)** — geen real-time`,
+## Jouw opdracht — ADR 1
+
+Leg vast hoe je **GameEnd ↔ leaderboard** ontkoppelt. Overwogen: sync blijven, point-to-point queue, batch.`,
+    systemContextPart2: `## Casus — deel 2: notify + email (behavioral coupling)
+
+**Situatie na ADR 1**
+- Leaderboard-updates lopen async via queue (temporal coupling opgelost)
+
+**Nog steeds sync in GameEnd**
+- \`NotifyViewers()\` — push naar kijkers
+- \`SendWinnerEmail()\` — extern email SaaS
+- Nieuwe feature (bijv. Discord-notify) = **game server aanpassen**
+
+## Probleem (les: behavioral coupling)
+
+Game server **kent alle downstream-systemen**. Extern SaaS en interne services worden direct aangeroepen.
+
+## Jouw opdracht — ADR 2
+
+Leg vast hoe je subscribers informeert **zonder** game server te wijzigen bij elke nieuwe consumer. Overwogen: meer sync calls, P2P queues, pub/sub met \`GameEnded\` event. **Verwijs naar ADR 1.**`,
     uml: `flowchart TB
-    subgraph huidig [Huidige koppeling - temporal coupling]
-      WS[Webshop API]
-      LEG[Legacy COBOL Bibliotheek]
-      WS -->|REST sync - wacht op antwoord| LEG
-    end
-    subgraph probleem [Wat er misgaat]
-      LEG -.->|offline 02:00-06:00| X[Checkout faalt]
-    end`,
+    GS[Game Server GameEnd]
+    LB[UpdateLeaderboard 30s]
+    GS -->|sync| LB`,
+    umlPart2: `flowchart TB
+    GS[Game Server]
+    EX[RabbitMQ Exchange]
+    NV[NotifyViewers]
+    EM[Email SaaS extern]
+    GS -->|GameEnded event| EX
+    EX --> NV
+    EX --> EM`,
   },
 
-  'adr-05': {
-    systemContext: `## Het systeem — huidige situatie
+  'adr-casus-03': {
+    systemContext: `## Casus — deel 1: webshop en legacy bibliotheek (temporal coupling)
 
-**Legacy HR-systeem**
-- Oracle-database met medewerkersgegevens, afdelingen, salarisgroepen
-- Monolithische Java EE app, geen publieke API
-- Schema is complex, weinig documentatie
-- Draait al 12+ jaar, kritisch voor HR-afdeling
+**Legacy bibliotheeksysteem (COBOL)**
+- Uitleningen en reserveringen
+- Offline 02:00–06:00 voor batch-jobs
+- Geen queue, geen events — alleen synchrone REST
 
-**Nieuw talent/portaal-systeem**
-- Moet medewerkersnaam, afdeling, manager kunnen tonen
-- Alleen-lezen toegang nodig
-- Team wil snel live zonder legacy te herschrijven
+**Nieuwe webshop-module**
+- Registreert uitlening in legacy bij bestelling
+- Nu: \`POST /legacy/loan\` en wachten op antwoord
 
-**Mogelijke koppelingen**
-| Optie | Beschrijving |
-|-------|--------------|
-| Directe DB | Nieuw systeem leest rechtstreeks Oracle-tabellen |
-| CSV export | HR exporteert dagelijks CSV, nieuw systeem importeert |
-| API-laag | Dunne REST-laag boven legacy die data serveert |
+**Extern betalingsplatform**
+- (Komt in deel 2 — nu focus op legacy-koppeling)
 
-## Risico's directe DB-koppeling
-- Schema-wijziging in legacy breekt nieuw systeem (fragility)
-- Security: nieuw systeem heeft volledige DB-toegang
-- Geen controle over welke velden gedeeld worden`,
-    uml: `flowchart LR
-    subgraph legacy [Legacy HR]
-      HRAPP[HR Applicatie]
-      ORA[(Oracle DB)]
-      HRAPP --> ORA
-    end
-    subgraph opties [Koppelopties]
-      NEW[Nieuw Portaal]
-      NEW -.->|optie A: direct| ORA
-      NEW -->|optie B: CSV| FILE[CSV bestand]
-      NEW -->|optie C: API| API[Read-only API]
-      API --> HRAPP
-    end`,
-  },
+## Probleem
 
-  'adr-06': {
-    systemContext: `## Het systeem — huidige situatie
+| Probleem | Term |
+|----------|------|
+| Legacy offline → checkout faalt | **Temporal coupling** |
+| Geen buffer | Berichten gaan verloren |
 
-**Legacy betalingssysteem (mainframe)**
-- Verwerkt betalingen via synchroon COBOL-programma
-- Max capaciteit: **10 requests/seconde** (harde limiet)
-- Geen horizontale schaalbaarheid
-- 99.5% uptime maar traag bij piek
+## Jouw opdracht — ADR 1
 
-**Webshop checkout**
-- Spring Boot service roept legacy direct aan bij "Betalen"
-- Thread blokkeert tot mainframe antwoordt (2-5 sec normaal)
+Leg vast hoe webshop ↔ legacy COBOL ontkoppelt in tijd. Overwogen: sync REST, RabbitMQ queue, nachtelijke batch.`,
+    systemContextPart2: `## Casus — deel 2: reservering, betaling en magazijn
 
-**Black Friday verwachting**
-- 1000 betalingen/seconde op piekmoment
-- Zonder bescherming: mainframe overload → timeouts → cascade failure
+**Situatie na ADR 1**
+- Uitleningen via durable queue naar legacy-adapter (temporal opgelost)
 
-## Gevolg huidige architectuur
-\`\`\`
-Checkout → Mainframe (sync) → bij overload: alles crasht
-\`\`\`
+**Nieuw probleem na reservering**
+- **Extern betalingsplatform** (SaaS) moet betaling starten
+- **Intern magazijn** moet exemplaar reserveren
+- Webshop roept beide **synchroon** aan → behavioral coupling
 
-## Overwogen opties
-1. Queue + throttling (buffer + max 10/sec naar legacy)
-2. Caching (helpt niet bij writes)
-3. Legacy vervangen (miljoenen, jaren)`,
-    uml: `flowchart TB
-    subgraph piek [Black Friday - probleem]
-      C1[Checkout 1]
-      C2[Checkout 2]
-      C3[Checkout ...1000/s]
-      MF[Mainframe max 10/s]
-      C1 & C2 & C3 -->|sync REST| MF
-      MF --> CRASH[Overload / timeouts]
-    end`,
-  },
+## Jouw opdracht — ADR 2
 
-  'adr-08': {
-    systemContext: `## Het systeem — huidige situatie
-
-**Legacy voorraad (mainframe)**
-- Voorraadtellingen in COBOL + DB2
-- Geen API, geen events
-- Batch-update 's nachts mogelijk
-
-**Webshop**
-- Moet "Op voorraad / Niet op voorraad" tonen
-- Klanten verwachten actuele info (concurrent doet real-time)
-
-**Huidige workarounds**
-| Methode | Nadeel |
-|---------|--------|
-| Polling elke 5 sec | Belast mainframe, nog steeds temporal coupling |
-| Nightly batch | Voorraad kan 24u verouderd zijn |
-| WebSocket | Moet gebouwd worden, maar lost coupling op |
-
-## Koppeling nu
-Webshop vraagt elke 5 sec voorraad op via REST → mainframe.`,
+Leg vast hoe je na \`LoanReserved\` informeert (intern + extern). Overwogen: sync keten, P2P queues, pub/sub event. **Bouwt voort op ADR 1.**`,
     uml: `flowchart LR
     WS[Webshop]
-  MF[Mainframe Voorraad]
-  WS -->|polling elke 5s REST| MF
-  MF -->|antwoord sync| WS`,
+    LEG[Legacy COBOL]
+    WS -->|REST sync| LEG`,
+    umlPart2: `flowchart TB
+    WS[Webshop]
+    EX[RabbitMQ Exchange]
+    PAY[Extern betaling SaaS]
+    WH[Magazijn intern]
+    WS -->|LoanReserved| EX
+    EX --> PAY
+    EX --> WH`,
   },
 
-  'adr-09': {
-    systemContext: `## Het systeem
+  'adr-casus-04': {
+    systemContext: `## Casus — deel 1: Black Friday piek (performance)
 
-**SAP ERP (legacy, 15 jaar)**
-- Module MM: materiaalmanagement / voorraad
-- Export: nachtelijke FTP-batch naar flat files
-- Geen real-time API beschikbaar voor externe apps
+**Legacy mainframe betalingen**
+- Max **10 requests/seconde**
+- Geen horizontale schaal
 
-**Mobiele voorraad-app (nieuw)**
-- Magazijnmedewerkers scannen producten
-- Moet actuele voorraad zien (niet van gisteren)
+**Checkout-module (nieuw)**
+- Synchrone \`PaymentService.pay()\` → mainframe
+- Thread blokkeert 2–5 sec
 
-## Dataflow nu
-\`\`\`
-SAP --[FTP nacht 03:00]--> bestand op server --[?]--> app
-\`\`\`
-App heeft geen live data.`,
+**Black Friday**
+- Verwacht **1000 betalingen/seconde**
+- Sync = overload, retry storms, timeouts
+
+## Messaging-concept
+
+Producer → queue → consumer throttle max 10/s naar legacy.
+
+## Jouw opdracht — ADR 1
+
+Leg vast hoe je legacy beschermt bij piekbelasting. Overwogen: sync retry, queue + throttling, unlimited competing consumers.`,
+    systemContextPart2: `## Casus — deel 2: betrouwbaarheid + fraudedetectie
+
+**Situatie na ADR 1**
+- Betalingen via RabbitMQ queue met throttling (piek opgevangen)
+
+**Nieuwe problemen**
+- Broker levert **at-least-once** → duplicaten mogelijk
+- **Poison messages** kunnen queue blokkeren
+- **Extern fraudedetectie SaaS** moet elke betaling zien (subscriber)
+
+## Begrippen uit de les
+
+| Term | Betekenis |
+|------|-----------|
+| DLQ | Bericht na X pogingen apart zetten |
+| Idempotency | Dubbele verwerking = zelfde resultaat |
+| ACK/NACK | Consumer bevestigt verwerking |
+
+## Jouw opdracht — ADR 2
+
+Leg vast hoe je betrouwbaarheid borgt (poison messages, duplicaten) terwijl fraud SaaS events krijgt. Overwogen: onbeperkt retry, weggooien, DLQ + idempotency + ACK. **Bouwt voort op ADR 1.**`,
     uml: `flowchart LR
-    SAP[SAP ERP]
-    FTP[FTP Server]
-    FILE[(voorraad.csv)]
-    APP[Mobiele App]
-    SAP -->|batch 03:00| FTP
-    FTP --> FILE
-    FILE -.->|verouderd| APP`,
-  },
-
-  'adr-10': {
-    systemContext: `## Het systeem
-
-**Legacy CRM (monolith)**
-- Klantgegevens, contacthistorie, contracten
-- Geen REST API, geen webhooks
-- Database: SQL Server, directe toegang mogelijk maar riskant
-
-**Marketing Automation Platform (nieuw)**
-- Moet segmenten maken op basis van klantwijzigingen
-- Eis: data binnen **5 minuten** na CRM-wijziging
-
-## Huidige situatie
-- Geen koppeling — marketing gebruikt verouderde CSV handmatig
-- Nightly ETL duurt te lang (volgende ochtend pas data)`,
-    uml: `flowchart TB
-    CRM[Legacy CRM Monolith]
-    DB[(SQL Server)]
-    MKT[Marketing Platform]
-    CRM --> DB
-    DB -.->|nightly ETL 24u vertraging| MKT
-    CRM -.->|geen live events| MKT`,
-  },
-
-  'adr-11': {
-    systemContext: `## Het systeem
-
-**Mainframe betalingsmodule**
-- Synchrone verwerking: request → response in één HTTP-call
-- Single point of failure voor checkout
-- Gepland onderhoud: zondag 00:00-04:00
-
-**Webshop Checkout Service**
-- \`PaymentService.pay()\` roept mainframe aan
-- Geen queue, geen fallback
-- Bij mainframe down: \`Connection refused\` → gebruiker ziet error
-
-## Sequence huidige situatie
-1. Gebruiker klikt Betalen
-2. Checkout → POST mainframe/pay (BLOCKING)
-3. Mainframe offline → exception → checkout crashed`,
-    uml: `sequenceDiagram
-    participant User
-    participant Checkout
-    participant Mainframe
-    User->>Checkout: Betaal
-    Checkout->>Mainframe: POST /pay sync
-    Note over Mainframe: offline
-    Mainframe--xCheckout: timeout
-    Checkout-->>User: Fout 500`,
-  },
-
-  'adr-12': {
-    systemContext: `## Het integratielandschap — 12 legacy systemen
-
-| Systeem | Functie |
-|---------|---------|
-| ERP | Orders, facturen |
-| CRM | Klanten |
-| HR | Personeel |
-| WMS | Magazijn |
-| ... | +8 andere |
-
-**Huidige koppeling: point-to-point spaghetti**
-- Elk systeem praat direct met 2-4 anderen
-- ~30 directe verbindingen totaal
-- Nieuwe koppeling = N×M probleem
-
-**Nieuw systeem (Data Warehouse)** moet erbij — nog 12 nieuwe verbindingen als je P2P blijft doen?`,
-    uml: `flowchart TB
-    ERP[ERP] <--> CRM[CRM]
-    CRM <--> HR[HR]
-    HR <--> WMS[WMS]
-    ERP <--> WMS
-    WMS <--> FIN[Finance]
-    CRM <--> MKT[Marketing]
-    FIN <--> ERP
-    NEW[Nieuw DWH]
-    NEW -.->|12 nieuwe P2P?| ERP
-    NEW -.-> CRM
-    NEW -.-> HR`,
-  },
-
-  'adr-13': {
-    systemContext: `## Het systeem
-
-**Legacy HR**
-- Salarisdata in beveiligde Oracle DB
-- Wekelijkse export: CSV → email naar Finance-medewerker
-- Geen encryptie op email, geen audit log
-
-**Finance rapportage-systeem**
-- Heeft **dagelijkse** salarisdata nodig voor kostenrapporten
-- AVG: elke toegang tot salarisdata moet gelogd worden
-
-## Problemen huidige flow
-\`\`\`
-HR --[CSV via email]--> persoon --[handmatig import]--> Finance
-\`\`\`
-- Onveilig (email niet encrypted)
-- Geen audit trail
-- Wekelijks ≠ dagelijkse behoefte`,
-    uml: `flowchart LR
-    HR[Legacy HR]
-    CSV[CSV bestand]
-    EMAIL[Email onversleuteld]
-    FIN[Finance Systeem]
-    HR --> CSV
-    CSV --> EMAIL
-    EMAIL -->|handmatig| FIN`,
+    C[Checkout 1000/s]
+    Q[(RabbitMQ buffer)]
+    MF[Mainframe 10/s]
+    C --> Q --> MF`,
+    umlPart2: `flowchart LR
+    Q[(payment queue)]
+    C[Idempotente consumer]
+    DLQ[(dead-letter queue)]
+    FR[Fraud SaaS extern]
+    Q --> C
+    C -->|poison na 3x| DLQ
+    C -->|event| FR`,
   },
 };

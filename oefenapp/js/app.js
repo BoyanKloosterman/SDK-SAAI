@@ -8,10 +8,20 @@ const App = {
     results: {},
     showFeedback: false,
     progress: {},
+    casusStep: 1,
   },
 
   getAllQuestions() {
     return typeof ALL_QUESTIONS !== 'undefined' ? ALL_QUESTIONS : QUESTIONS;
+  },
+
+  isAdrCasusFlow(q) {
+    return typeof isAdrCasusQuestion === 'function' && isAdrCasusQuestion(q);
+  },
+
+  getCasusAdrPart(q, step) {
+    const parts = (q.parts || []).filter((p) => p.type === 'adr-write');
+    return parts[step - 1] || null;
   },
 
   init() {
@@ -43,7 +53,7 @@ const App = {
     document.getElementById('btn-next').addEventListener('click', () => this.nextQuestion());
     document.getElementById('btn-prev').addEventListener('click', () => this.prevQuestion());
     document.getElementById('btn-check').addEventListener('click', () => this.checkAnswer());
-    document.getElementById('btn-skip').addEventListener('click', () => this.nextQuestion());
+    document.getElementById('btn-skip').addEventListener('click', () => this.skipQuestion());
   },
 
   renderHome() {
@@ -84,7 +94,7 @@ const App = {
     main.innerHTML = `
       <section class="hero">
         <h2>SDK & SAAI Toetstrainer</h2>
-        <p>7 vragen per ronde — 2 meerkeuze (0,5 pt), 2 ADR (50%), 3 open. Vragen verdeeld over alle 17 samenvatting-secties.</p>
+        <p>6 vragen per examenronde — 2 meerkeuze (0,5 pt), 1 casus met 2 ADR (50%), 3 open. ADR-oefening: casus in 2 stappen (deel 1 → ADR 1 → deel 2 → ADR 2).</p>
         <div class="stats">
           <div class="stat"><span class="stat-num">${openCount}</span><span class="stat-label">open</span></div>
           <div class="stat"><span class="stat-num">${mcqCount}</span><span class="stat-label">meerkeuze</span></div>
@@ -104,7 +114,7 @@ const App = {
         <div class="mode-grid">
           <button class="mode-btn primary" id="btn-exam">
             <strong>Examenmodus</strong>
-            <span>7 vragen — willekeurig, zelfde opbouw als toets</span>
+            <span>Casus + 2 ADR's (50%) — zoals op de toets</span>
           </button>
           <button class="mode-btn" id="btn-open">
             <strong>Open vragen</strong>
@@ -112,7 +122,7 @@ const App = {
           </button>
           <button class="mode-btn" id="btn-adr">
             <strong>ADR-oefening</strong>
-            <span>Alle legacy ADR-scenario's</span>
+            <span>4 casussen — elk 2 ADR's in stappen</span>
           </button>
           <button class="mode-btn" id="btn-all">
             <strong>Alles incl. meerkeuze</strong>
@@ -212,7 +222,12 @@ const App = {
   },
 
   startCategory(cat) {
-    const questions = this.getAllQuestions().filter((q) => q.category === cat);
+    let questions = this.getAllQuestions().filter((q) => q.category === cat);
+    if (cat === 'adr') {
+      questions = typeof getAdrCasusQuestions === 'function'
+        ? getAdrCasusQuestions()
+        : questions.filter((q) => q.examCasus);
+    }
     if (!questions.length) { alert('Geen vragen in deze categorie.'); return; }
     this.startQuiz(questions, 'category');
   },
@@ -232,6 +247,7 @@ const App = {
     this.state.answers = {};
     this.state.results = {};
     this.state.showFeedback = false;
+    this.state.casusStep = 1;
     document.getElementById('quiz-controls').classList.remove('hidden');
     document.getElementById('progress-bar').classList.remove('hidden');
     this.renderQuestion();
@@ -250,8 +266,11 @@ const App = {
     const main = document.getElementById('main');
     const progress = ((this.state.currentIndex + 1) / this.state.questions.length) * 100;
     document.getElementById('progress-fill').style.width = `${progress}%`;
-    document.getElementById('progress-text').textContent =
-      `${this.state.currentIndex + 1} / ${this.state.questions.length}`;
+    const casusStep = this.state.casusStep || 1;
+    const inCasusFlow = this.isAdrCasusFlow(q);
+    document.getElementById('progress-text').textContent = inCasusFlow
+      ? `${this.state.currentIndex + 1} / ${this.state.questions.length} — stap ${casusStep}/2`
+      : `${this.state.currentIndex + 1} / ${this.state.questions.length}`;
 
     const examBadge = q.examLabel
       ? `<span class="exam-badge">${q.examLabel}${q.examWeight ? ` — ${String(q.examWeight).replace('.', ',')} pt` : ''}</span>`
@@ -261,26 +280,35 @@ const App = {
       <div class="question-card">
         <div class="q-meta">
           <span class="q-cat" style="background:${cat.color}22;color:${cat.color}">${secLabel || cat.label}</span>
-          <span class="q-type">${this.typeLabel(q.type)}</span>
+          <span class="q-type">${this.typeLabel(q.type, q)}</span>
           ${examBadge}
         </div>
         ${q.examNote ? `<p class="exam-note">${this.escapeHtml(q.examNote)}</p>` : ''}
-        <h3 class="q-text">${this.escapeHtml(q.question).replace(/\n/g, '<br>')}</h3>
+        ${inCasusFlow ? `<p class="casus-step-badge">Stap ${casusStep} van 2 — ${casusStep === 1 ? 'casus deel 1 + ADR 1' : 'casus deel 2 + ADR 2'}</p>` : ''}
+        <h3 class="q-text">${this.escapeHtml(inCasusFlow && casusStep === 2 ? 'Casus — deel 2: tweede ontwerpbeslissing' : q.question).replace(/\n/g, '<br>')}</h3>
     `;
 
     if (q.code) body += `<pre class="code-block">${this.escapeHtml(q.code)}</pre>`;
     if (q.codeContext) body += `<pre class="code-block context">${this.escapeHtml(q.codeContext)}</pre>`;
-    if (q.scenario) body += `<p class="scenario">${this.escapeHtml(q.scenario)}</p>`;
-    if (q.systemContext) {
+    if (q.scenario && (!inCasusFlow || casusStep === 1)) {
+      body += `<p class="scenario">${this.escapeHtml(q.scenario)}</p>`;
+    }
+    const contextBlock = inCasusFlow
+      ? (casusStep === 1 ? q.systemContext : q.systemContextPart2)
+      : q.systemContext;
+    if (contextBlock) {
       body += `<details class="system-context" open>
-        <summary>Systeemcontext — lees dit eerst</summary>
-        <div class="system-context-body">${this.formatContext(q.systemContext)}</div>
+        <summary>${inCasusFlow ? `Systeemcontext — deel ${casusStep}` : 'Systeemcontext — lees dit eerst'}</summary>
+        <div class="system-context-body">${this.formatContext(contextBlock)}</div>
       </details>`;
     }
-    if (q.uml) {
-      const umlLabel = q.type === 'adr-write' ? 'Huidige architectuur / koppeling' : '';
+    const umlBlock = inCasusFlow
+      ? (casusStep === 2 && q.umlPart2 ? q.umlPart2 : q.uml)
+      : q.uml;
+    if (umlBlock) {
+      const umlLabel = (q.type === 'adr-write' || q.examCasus) ? 'Architectuur — huidige vs gewenste richting' : '';
       if (umlLabel) body += `<p class="uml-label">${umlLabel}</p>`;
-      body += `<div class="uml-wrap"><div class="mermaid">${q.uml}</div></div>`;
+      body += `<div class="uml-wrap"><div class="mermaid">${umlBlock}</div></div>`;
     }
 
     body += `<div class="answer-area" id="answer-area">${this.renderAnswerInput(q)}</div>`;
@@ -294,13 +322,16 @@ const App = {
     this.renderMermaid();
     this.bindAnswerEvents(q);
 
-    document.getElementById('btn-prev').disabled = this.state.currentIndex === 0;
-    document.getElementById('btn-check').classList.toggle('hidden', this.isMcqType(q.type) && this.state.showFeedback);
-    document.getElementById('btn-next').textContent =
-      this.state.currentIndex === this.state.questions.length - 1 ? 'Resultaten' : 'Volgende';
+    document.getElementById('btn-prev').disabled = this.state.currentIndex === 0 && casusStep === 1;
+    const hideCheck = (this.isMcqType(q.type) && this.state.showFeedback)
+      || (inCasusFlow && casusStep === 1);
+    document.getElementById('btn-check').classList.toggle('hidden', hideCheck);
+    document.getElementById('btn-next').textContent = inCasusFlow && casusStep === 1
+      ? 'Deel 2 →'
+      : (this.state.currentIndex === this.state.questions.length - 1 ? 'Resultaten' : 'Volgende');
   },
 
-  typeLabel(type) {
+  typeLabel(type, q) {
     const labels = {
       mcq: 'Meerkeuze',
       'code-analysis': 'Code-analyse',
@@ -314,6 +345,7 @@ const App = {
       'pseudocode-write': 'Pseudocode',
       'factory-uml': 'Factory + UML',
     };
+    if (type === 'open-multi' && q && q.examCasus) return 'Casus — 2 ADR\'s';
     return labels[type] || type;
   },
 
@@ -359,15 +391,38 @@ const App = {
     }
 
     if (q.type === 'open-multi') {
+      // Casus: per stap één ADR-veld
+      if (this.isAdrCasusFlow(q)) {
+        const step = this.state.casusStep || 1;
+        const part = this.getCasusAdrPart(q, step);
+        if (!part) return '';
+        const partSaved = saved && saved[part.key] ? saved[part.key] : '';
+        let partHtml = `<div class="part-block part-adr">
+          <div class="part-label">${this.escapeHtml(part.label)}</div>
+          <p class="part-q">${this.escapeHtml(part.question).replace(/\n/g, '<br>')}</p>
+          <div class="adr-template">
+            <button type="button" class="tpl-btn part-tpl-btn" data-part="${part.key}">Nygard template ${this.escapeHtml(part.label)}</button>
+            <span class="hint">Min. 2 beslissingen, min. 1 + en 1 - in Consequences.</span>
+          </div>
+          <textarea class="text-answer part-answer adr-answer" data-part="${part.key}" rows="16"
+            placeholder="Schrijf ${this.escapeHtml(part.label)}...">${this.escapeHtml(partSaved)}</textarea></div>`;
+        return partHtml;
+      }
       return (q.parts || []).map((part) => {
         const partSaved = saved && saved[part.key] ? saved[part.key] : '';
-        const rows = part.type === 'adr-write' ? 12 : part.type === 'pseudocode-write' ? 10 : 5;
-        let partHtml = `<div class="part-block">
+        const rows = part.type === 'adr-write' ? 16 : part.type === 'pseudocode-write' ? 10 : 5;
+        let partHtml = `<div class="part-block${part.type === 'adr-write' ? ' part-adr' : ''}">
           <div class="part-label">${this.escapeHtml(part.label)}</div>
           <p class="part-q">${this.escapeHtml(part.question).replace(/\n/g, '<br>')}</p>`;
+        if (part.type === 'adr-write') {
+          partHtml += `<div class="adr-template">
+            <button type="button" class="tpl-btn part-tpl-btn" data-part="${part.key}">Nygard template ${this.escapeHtml(part.label)}</button>
+            <span class="hint">Min. 2 beslissingen, min. 1 + en 1 - in Consequences.</span>
+          </div>`;
+        }
         if (part.code) partHtml += `<pre class="code-block">${this.escapeHtml(part.code)}</pre>`;
-        partHtml += `<textarea class="text-answer part-answer" data-part="${part.key}" rows="${rows}"
-          placeholder="Antwoord ${part.label}...">${this.escapeHtml(partSaved)}</textarea></div>`;
+        partHtml += `<textarea class="text-answer part-answer${part.type === 'adr-write' ? ' adr-answer' : ''}" data-part="${part.key}" rows="${rows}"
+          placeholder="Schrijf ${this.escapeHtml(part.label)}...">${this.escapeHtml(partSaved)}</textarea></div>`;
         return partHtml;
       }).join('');
     }
@@ -388,7 +443,7 @@ const App = {
           <span class="hint">Verplicht: min. 2 concrete beslissingen in Decision, min. 1 voordeel (+) en 1 nadeel (-) in Consequences.</span>
         </div>
         <textarea class="text-answer adr-answer" id="text-answer" rows="18"
-          placeholder="Schrijf je Nygard ADR...">${saved || ''}</textarea>`;
+          placeholder="Schrijf je Nygard ADR (RabbitMQ, events, temporal/behavioral coupling)...">${saved || ''}</textarea>`;
     }
 
     if (q.type === 'pseudocode-write') {
@@ -439,23 +494,40 @@ const App = {
           this.state.answers[q.id][ta.dataset.part] = ta.value;
         });
       });
+      document.querySelectorAll('.part-tpl-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const ta = document.querySelector(`.part-answer[data-part="${btn.dataset.part}"]`);
+          if (!ta) return;
+          ta.value = this.getNygardTemplate();
+          if (!this.state.answers[q.id]) this.state.answers[q.id] = {};
+          this.state.answers[q.id][btn.dataset.part] = ta.value;
+        });
+      });
+    }
+
+    const tplBtn = document.getElementById('insert-adr-template');
+    if (tplBtn) {
+      tplBtn.addEventListener('click', () => {
+        const textarea = document.getElementById('text-answer');
+        textarea.value = this.getNygardTemplate();
+        this.state.answers[q.id] = textarea.value;
+      });
     }
 
     const textarea = document.getElementById('text-answer');
     if (textarea) {
       textarea.addEventListener('input', () => { this.state.answers[q.id] = textarea.value; });
     }
+  },
 
-    const tplBtn = document.getElementById('insert-adr-template');
-    if (tplBtn) {
-      tplBtn.addEventListener('click', () => {
-        const tpl = `# [Titel]
+  getNygardTemplate() {
+    return `# [Titel]
 
 ## Status
 Proposed
 
 ## Context
-[Probleem, legacy-situatie, minimaal 2 overwogen alternatieven]
+[Probleem: temporal/behavioral coupling, sync vs async. Min. 2 overwogen alternatieven uit de les: sync REST, P2P queue, pub/sub exchange]
 
 ## Decision
 1. [Eerste concrete keuze — bijv. welke technologie]
@@ -466,10 +538,6 @@ Proposed
 + [voordeel 2 — optioneel]
 - [nadeel 1]
 - [nadeel 2 — optioneel]`;
-        textarea.value = tpl;
-        this.state.answers[q.id] = tpl;
-      });
-    }
   },
 
   getAnswer(q) {
@@ -574,6 +642,31 @@ Proposed
   },
 
   nextQuestion() {
+    const q = this.state.questions[this.state.currentIndex];
+    if (this.isAdrCasusFlow(q) && (this.state.casusStep || 1) === 1) {
+      const part = this.getCasusAdrPart(q, 1);
+      const answer = this.getAnswer(q);
+      if (part && !(answer[part.key] || '').trim()) {
+        alert('Vul ADR 1 in voordat je naar deel 2 gaat.');
+        return;
+      }
+      this.state.casusStep = 2;
+      this.state.showFeedback = false;
+      this.renderQuestion();
+      return;
+    }
+    this.state.casusStep = 1;
+    if (this.state.currentIndex < this.state.questions.length - 1) {
+      this.state.currentIndex++;
+      this.state.showFeedback = false;
+      this.renderQuestion();
+    } else {
+      this.renderResults();
+    }
+  },
+
+  skipQuestion() {
+    this.state.casusStep = 1;
     if (this.state.currentIndex < this.state.questions.length - 1) {
       this.state.currentIndex++;
       this.state.showFeedback = false;
@@ -584,7 +677,15 @@ Proposed
   },
 
   prevQuestion() {
+    const q = this.state.questions[this.state.currentIndex];
+    if (this.isAdrCasusFlow(q) && (this.state.casusStep || 1) === 2) {
+      this.state.casusStep = 1;
+      this.state.showFeedback = !!this.state.results[q.id];
+      this.renderQuestion();
+      return;
+    }
     if (this.state.currentIndex > 0) {
+      this.state.casusStep = 1;
       this.state.currentIndex--;
       this.state.showFeedback = !!this.state.results[this.state.questions[this.state.currentIndex].id];
       this.renderQuestion();
@@ -629,7 +730,7 @@ Proposed
       const score = r ? r.score : '-';
       const cat = QUESTION_CATEGORIES[q.category] || { label: q.category, color: '#9c9a92' };
       const sec = typeof getQuestionTopic === 'function' ? getSectionLabel(getQuestionTopic(q)) : cat.label;
-      const label = q.examLabel || this.typeLabel(q.type);
+      const label = q.examLabel || this.typeLabel(q.type, q);
       const weight = q.examWeight ? ` (${String(q.examWeight).replace('.', ',')} pt)` : '';
       return `<tr>
         <td>${label}${weight}</td>

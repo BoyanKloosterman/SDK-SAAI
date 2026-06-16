@@ -151,115 +151,52 @@ void go() { zzz(b, tmp); }`,
     explain: 'Stap 1 vs stap 2 uit samenvatting.',
   },
 
-  // === EXTRA ADR's legacy (50% toets) ===
+  // === EXAMEN CASUS — 2 ADR's op één legacy + module + extern systeem ===
   {
-    id: 'adr-09', category: 'adr', type: 'adr-write',
-    question: 'Schrijf een Nygard ADR:\n\nLegacy SAP-systeem (15 jaar oud) beheert voorraad. Nieuwe mobiele app moet voorraad tonen. SAP ondersteunt alleen batch-export via FTP (nachtelijk). Opties: FTP blijven gebruiken, real-time REST API bouwen bovenop SAP, of message queue met SAP-adapter.',
-    scenario: 'Legacy SAP voorraad + mobiele app',
-    rubric: {
-      contextKeywords: ['legacy', 'sap', 'voorraad', 'batch', 'ftp', 'mobiel'],
-      problemMustMention: ['batch', 'nacht', 'vertraging', 'real-time', 'realtime', 'actueel'],
-      alternativesExpected: ['ftp', 'rest', 'api', 'queue', 'message', 'batch'],
-      solutionQuality: {
-        excellent: [{ patterns: ['rest api', 'api-laag', 'api laag', 'read-only api', 'adapter'], why: 'Real-time data zonder directe SAP-internals, loose coupling.' }],
-        good: [{ patterns: ['message queue', 'rabbitmq', 'kafka', 'event', 'adapter'], why: 'Asynchroon en ontkoppeld; goed als SAP geen real-time REST kan.' }],
-        acceptable: [{ patterns: ['ftp', 'export'], why: 'Werkt maar geen real-time — alleen acceptabel als je dat in Context erkent als nadeel.' }],
-        poor: [{ patterns: ['directe database', 'direct sap', 'sap database'], penalty: 25, why: 'Directe koppeling aan SAP-internals is riskant en niet onderhoudbaar.' }],
+    id: 'adr-casus-01', category: 'adr', type: 'open-multi', topic: 's10',
+    question: 'Casus (zoals op het examen): Legacy ERP-monolith, nieuwe Order Service-module en extern Fulfillment SaaS.\n\nLees de systeemcontext. Schrijf twee Nygard ADR\'s die toekomstige kwaliteit van het bestaande systeem verhogen. Gebruik de gegeven indeling (Titel, Status, Context, Decision, Consequences).',
+    scenario: 'Examen — 2 ADR\'s op één casus',
+    examCasus: true,
+    parts: [
+      {
+        key: 'adr1', label: 'ADR 1', weight: 1, type: 'adr-write',
+        question: 'ADR 1 — Koppeling Order Service ↔ Legacy ERP\n\nHet ERP is \'s nachts offline (temporal coupling). Order Service roept nu synchroon REST aan; orders falen bij onderhoud. Overwogen: sync REST blijven, point-to-point RabbitMQ queue, of nachtelijke batch-export.\n\nLeg vast welke integratiebeslissing de kwaliteit van het bestaande ERP-landschap verhoogt.',
+        rubric: {
+          contextKeywords: ['legacy', 'erp', 'order', 'temporal', 'offline', 'sync', 'synchroon'],
+          problemMustMention: ['temporal', 'offline', 'coupling', 'sync', 'synchroon', 'erp'],
+          alternativesExpected: ['rest', 'sync', 'synchroon', 'rabbitmq', 'queue', 'batch'],
+          solutionQuality: {
+            excellent: [{ patterns: ['rabbitmq', 'message queue', 'queue', 'durable', 'asynchroon'], why: 'Temporal decoupling — orders bewaard tot ERP online (les).' }],
+            good: [{ patterns: ['event', 'adapter', 'async'], why: 'Asynchroon en ontkoppeld in tijd.' }],
+            poor: [{ patterns: ['sync rest', 'synchroon rest', 'direct rest', 'rest blijven'], penalty: 30, why: 'Sync REST lost temporal coupling niet op — nachtelijk onderhoud blijft probleem.' }],
+          },
+          bestSolution: 'Durable RabbitMQ queue: Order Service = producer, ERP-adapter = consumer.',
+          consequencePositive: ['temporal', 'offline', 'queue', 'beschikbaar', 'kwaliteit'],
+          consequenceNegative: ['infrastructuur', 'complex', 'eventual', 'debug'],
+        },
+        modelAnswer: '# RabbitMQ queue tussen Order Service en Legacy ERP\n\n## Status\nAccepted\n\n## Context\nOrder Service roept ERP synchroon aan. ERP offline 01:00–04:00 → temporal coupling, mislukte orders. Overwogen: sync REST, P2P queue, nachtelijke batch.\n\n## Decision\n1. Order Service publiceert order-messages naar een durable RabbitMQ queue.\n2. ERP-adapter consumeert asynchroon wanneer ERP beschikbaar is (ACK na succes).\n\n## Consequences\n+ Temporal coupling opgelost — orders blijven bewaard\n+ Bestaand ERP hoeft niet herschreven te worden\n- RabbitMQ-infrastructuur en adapter nodig\n- Eventual consistency — order pas later in ERP zichtbaar',
       },
-      bestSolution: 'REST API-laag of message queue met adapter bovenop SAP. FTP alleen als je expliciet vertraging accepteert.',
-      consequencePositive: ['real-time', 'realtime', 'los', 'ontkoppeld', 'mobiel'],
-      consequenceNegative: ['adapter', 'complex', 'onderhoud', 'kosten', 'vertraging'],
-    },
-    modelAnswer: '# REST API-laag boven legacy SAP\n\n## Status\nProposed\n\n## Context\nSAP levert alleen nachtelijke FTP-batch. Mobiele app heeft actuele voorraad nodig. FTP is verouderd; directe DB-toegang is riskant.\n\n## Decision\nWe bouwen een read-only REST API-laag met SAP-adapter die near-real-time voorraad levert.\n\n## Consequences\n+ Actuele data voor mobiele app\n+ Geen directe SAP DB-koppeling\n- Adapter ontwikkelen en onderhouden\n- SAP blijft bottleneck',
-    explain: 'Vergelijk FTP vs API vs queue. Kies oplossing die past bij real-time eis.',
-  },
-  {
-    id: 'adr-10', category: 'adr', type: 'adr-write',
-    question: 'Schrijf een Nygard ADR:\n\nLegacy CRM (monolith, geen API) moet klantdata delen met nieuw marketingplatform. Marketing heeft data binnen 5 minuten nodig na wijziging. Opties: punt-naar-punt database-replicatie, nightly ETL, of RabbitMQ events via custom adapter.',
-    scenario: 'Legacy CRM data naar marketing',
-    rubric: {
-      contextKeywords: ['legacy', 'crm', 'marketing', 'klant', 'data'],
-      problemMustMention: ['5 min', 'minuten', 'snel', 'real-time', 'near'],
-      alternativesExpected: ['replicatie', 'etl', 'nightly', 'rabbitmq', 'queue', 'event', 'api'],
-      solutionQuality: {
-        excellent: [{ patterns: ['rabbitmq', 'message queue', 'event', 'events', 'pub sub', 'adapter'], why: 'Near-real-time events zonder tight coupling aan CRM-internals.' }],
-        good: [{ patterns: ['cdc', 'change data capture', 'streaming', 'kafka'], why: 'Goed voor near-real-time data-sync.' }],
-        acceptable: [{ patterns: ['etl', 'batch'], why: 'Te traag voor 5-minuten eis tenzij je dat erkent als probleem.' }],
-        poor: [
-          { patterns: ['directe database', 'db replicatie direct', 'shared database'], penalty: 20, why: 'Tight coupling en schema-afhankelijkheid.' },
-          { patterns: ['punt-naar-punt', 'point to point'], penalty: 15, why: 'Schaalt slecht bij meer systemen.' },
-        ],
+      {
+        key: 'adr2', label: 'ADR 2', weight: 1, type: 'adr-write',
+        question: 'ADR 2 — OrderShipped informeren (intern + extern)\n\nNa verzending moeten Fulfillment SaaS (extern), magazijn-app én marketing worden geïnformeerd. Nu roept Order Service alles synchroon aan; nieuwe subscriber = Order Service aanpassen (behavioral coupling). Overwogen: meer P2P REST, point-to-point queues, of pub/sub exchange met OrderShipped event.\n\nLeg vast hoe je schaalbaar en losgekoppeld informeert — bouwt voort op ADR 1.',
+        rubric: {
+          contextKeywords: ['order', 'shipped', 'extern', 'fulfillment', 'behavioral', 'pub', 'sub'],
+          problemMustMention: ['behavioral', 'coupling', 'extern', 'sync', 'synchroon', 'subscriber'],
+          alternativesExpected: ['point', 'rest', 'sync', 'queue', 'pub', 'sub', 'exchange', 'event'],
+          solutionQuality: {
+            excellent: [{ patterns: ['pub/sub', 'pub sub', 'publish', 'subscribe', 'exchange', 'ordershipped', 'order shipped'], why: 'Behavioral decoupling — Order Service kent subscribers niet (les).' }],
+            good: [{ patterns: ['rabbitmq', 'message queue', 'queue'], why: 'Beter dan sync, maar P2P queues kennen nog alle bestemmingen.' }],
+            poor: [{ patterns: ['sync rest', 'synchroon rest', 'meer point', 'point-to-point'], penalty: 30, why: 'Verergert behavioral coupling en P2P-spaghetti.' }],
+          },
+          bestSolution: 'RabbitMQ exchange pub/sub: OrderShipped event; aparte queues voor fulfillment, magazijn, marketing.',
+          consequencePositive: ['behavioral', 'extern', 'schaal', 'ontkoppeld', 'kwaliteit'],
+          consequenceNegative: ['complex', 'eventual', 'infrastructuur', 'volgorde'],
+        },
+        modelAnswer: '# Pub/sub met OrderShipped event\n\n## Status\nAccepted\n\n## Context\nOrder Service roept sync Fulfillment, magazijn en marketing aan. Behavioral coupling: elke nieuwe consumer = code wijzigen. Extern SaaS + interne apps. Overwogen: P2P REST, P2P queues, pub/sub exchange. Voortbouwend op ADR 1 (RabbitMQ).\n\n## Decision\n1. Order Service publiceert `OrderShipped` events (verleden tijd) naar RabbitMQ exchange.\n2. Fulfillment SaaS-adapter, magazijn en marketing subscriben via eigen queues (routing key).\n\n## Consequences\n+ Behavioral decoupling — nieuwe subscriber zonder Order Service aan te passen\n+ Extern en intern gelijk behandeld via messaging\n- Event-driven flows lastiger te debuggen\n- Idempotency nodig bij at-least-once delivery',
       },
-      bestSolution: 'RabbitMQ/events via adapter voor near-real-time sync binnen 5 minuten.',
-      consequencePositive: ['real-time', 'los', 'schaal', 'marketing'],
-      consequenceNegative: ['adapter', 'complex', 'events', 'infrastructuur'],
-    },
-    modelAnswer: '# RabbitMQ events voor CRM-marketing sync\n\n## Status\nAccepted\n\n## Context\nCRM heeft geen API. Marketing wil data binnen 5 min. Nightly ETL is te traag. DB-replicatie koppelt te strak.\n\n## Decision\nCustom adapter publiceert klantwijzigingen als events naar RabbitMQ. Marketing consumeert asynchroon.\n\n## Consequences\n+ Voldoet aan 5-minuten eis\n+ Loose coupling\n- Adapter bouwen en onderhouden\n- Eventual consistency',
-    explain: '5-minuten eis sluit nightly ETL grotendeels uit.',
-  },
-  {
-    id: 'adr-11', category: 'adr', type: 'adr-write',
-    question: 'Schrijf een Nygard ADR:\n\nLegacy betalingssysteem (mainframe) verwerkt betalingen synchroon. Bij uitval crasht de hele webshop-checkout. Opties: synchroon retry, async queue (RabbitMQ), of circuit breaker met fallback.',
-    scenario: 'Legacy betalingen checkout resilience',
-    rubric: {
-      contextKeywords: ['legacy', 'betaling', 'mainframe', 'checkout', 'uitval'],
-      problemMustMention: ['uitval', 'crash', 'temporal', 'synchroon', 'offline'],
-      alternativesExpected: ['retry', 'queue', 'rabbitmq', 'circuit breaker', 'async', 'synchroon'],
-      solutionQuality: {
-        excellent: [{ patterns: ['rabbitmq', 'message queue', 'async', 'asynchroon', 'queue'], why: 'Ontkoppelt checkout van mainframe-beschikbaarheid.' }],
-        good: [{ patterns: ['circuit breaker', 'fallback'], why: 'Beschermt tegen cascade failures, maar lost temporal coupling gedeeltelijk op.' }],
-        weak: [{ patterns: ['retry', 'opnieuw proberen'], why: 'Checkout blijft hangen bij langdurige uitval mainframe.' }],
-        poor: [{ patterns: ['synchroon blijven', 'direct aanroepen', 'geen queue'], penalty: 25, why: 'Checkout crasht nog steeds als mainframe offline is.' }],
-      },
-      bestSolution: 'Async queue (RabbitMQ): checkout plaatst betaling in queue, mainframe verwerkt wanneer beschikbaar.',
-      consequencePositive: ['temporal', 'offline', 'checkout', 'bescherm'],
-      consequenceNegative: ['complex', 'vertraging', 'infrastructuur', 'debug'],
-    },
-    modelAnswer: '# Async RabbitMQ voor legacy betalingen\n\n## Status\nAccepted\n\n## Context\nSynchrone mainframe-koppeling: bij uitval crasht checkout (temporal coupling). Retry helpt niet bij langdurige storing.\n\n## Decision\nCheckout publiceert betalingsopdrachten naar RabbitMQ. Mainframe-consumer verwerkt asynchroon.\n\n## Consequences\n+ Checkout blijft werken bij mainframe-uitval\n+ Temporal coupling opgelost\n- Klant ziet vertraagde bevestiging\n- RabbitMQ beheer',
-    explain: 'Temporal coupling is het kernprobleem.',
-  },
-  {
-    id: 'adr-12', category: 'adr', type: 'adr-write',
-    question: 'Schrijf een Nygard ADR:\n\nOrganisatie heeft 12 legacy systemen die point-to-point met elkaar praten (spaghetti). Nieuw systeem moet erbij. Opties: meer point-to-point, SOA met ESB, of hub-and-spoke met message broker.',
-    scenario: 'Legacy integratielandschap ontwarren',
-    rubric: {
-      contextKeywords: ['legacy', 'point', 'spaghetti', 'integratie', 'systeem'],
-      problemMustMention: ['point', 'spaghetti', 'koppeling', 'tight', 'onderhoud'],
-      alternativesExpected: ['point', 'soa', 'esb', 'hub', 'broker', 'rabbitmq', 'microservice'],
-      solutionQuality: {
-        excellent: [{ patterns: ['hub', 'broker', 'rabbitmq', 'message broker', 'event bus'], why: 'Loose coupling op systeemniveau, schaalbaar bij nieuw systeem.' }],
-        good: [{ patterns: ['soa', 'esb'], why: 'Centraliseert integratie maar ESB kan bottleneck worden.' }],
-        poor: [{ patterns: ['meer point', 'point-to-point', 'punt naar punt', 'direct koppelen'], penalty: 30, why: 'Verergert spaghetti — exact het bestaande probleem.' }],
-      },
-      bestSolution: 'Hub-and-spoke met message broker — nieuw systeem koppelt alleen aan de hub.',
-      consequencePositive: ['los', 'schaal', 'onderhoud', 'hub'],
-      consequenceNegative: ['esb', 'broker', 'complex', 'bottleneck', 'infrastructuur'],
-    },
-    modelAnswer: '# Message broker als integratiehub\n\n## Status\nProposed\n\n## Context\n12 legacy systemen point-to-point = spaghetti, tight coupling. Nieuw systeem erbij maakt het erger.\n\n## Decision\nHub-and-spoke met RabbitMQ. Systemen publiceren/subscriben via broker.\n\n## Consequences\n+ Nieuw systeem alleen aan hub koppelen\n+ Loose coupling\n- Broker wordt single point of failure (mitigeren met clustering)\n- Migratie-inspanning',
-    explain: 'Point-to-point vermijden is cruciaal.',
-  },
-  {
-    id: 'adr-13', category: 'adr', type: 'adr-write',
-    question: 'Schrijf een Nygard ADR:\n\nLegacy HR-systeem exporteert salarisdata als platte CSV via email (wekelijks). Finance-systeem heeft dagelijkse data nodig voor rapportage. AVG eist audit trail. Opties: email CSV behouden, beveiligde API, of beveiligde SFTP + logging.',
-    scenario: 'Legacy HR salarisdata naar Finance',
-    rubric: {
-      contextKeywords: ['legacy', 'hr', 'salaris', 'finance', 'csv', 'avg'],
-      problemMustMention: ['avg', 'audit', 'beveilig', 'privacy', 'dagelijkse'],
-      alternativesExpected: ['csv', 'email', 'api', 'sftp', 'secure'],
-      solutionQuality: {
-        excellent: [{ patterns: ['beveiligde api', 'rest api', 'api met audit', 'oauth', 'token'], why: 'Dagelijkse data + audit trail + controle over toegang.' }],
-        good: [{ patterns: ['sftp', 'secure ftp', 'beveiligde sftp'], why: 'Beter dan email, met logging mogelijk.' }],
-        poor: [
-          { patterns: ['email csv', 'email behouden', 'csv via email'], penalty: 30, why: 'Onveilig, geen audit trail, niet AVG-proof.' },
-          { patterns: ['wekelijks blijven'], penalty: 15, why: 'Voldoet niet aan dagelijkse behoefte Finance.' },
-        ],
-      },
-      bestSolution: 'Beveiligde API met authenticatie, autorisatie en audit logging.',
-      consequencePositive: ['avg', 'audit', 'beveilig', 'dagelijkse'],
-      consequenceNegative: ['ontwikkeling', 'onderhoud', 'legacy aanpassen'],
-    },
-    modelAnswer: '# Beveiligde API voor HR-Finance data-uitwisseling\n\n## Status\nAccepted\n\n## Context\nWekelijkse CSV via email is onveilig en niet AVG-conform. Finance wil dagelijkse data. Audit trail verplicht.\n\n## Decision\nRead-only REST API met OAuth2, role-based access en audit logging.\n\n## Consequences\n+ AVG-compliant met audit trail\n+ Dagelijkse data voor Finance\n- API bouwen boven legacy HR\n- Authenticatie-infrastructuur nodig',
-    explain: 'Email CSV is security-risico en slechte oplossing.',
+    ],
+    modelAnswer: 'Zie modelantwoorden bij ADR 1 en ADR 2.',
+    explain: 'Examenformat: één casus, twee ADR\'s, elk een andere kwaliteitsverbetering (temporal + behavioral decoupling).',
   },
 
   // === EXAMEN VRAAG 3: open multi-part (3.1, 3.2, 3.3) ===
@@ -598,83 +535,43 @@ const MCQ_ONLY_IDS = new Set([
   'msg-01','msg-02','msg-03','msg-04','msg-05','msg-06','msg-07',
 ]);
 
-// Examen: 7 vragen — 2 MC (0,5 pt), 2 ADR (50%), 3 open — verdeeld over samenvatting-secties
+// Examen: 6 vragen — 2 MC (0,5 pt), 1 casus met 2 ADR (50%), 3 open
 const EXAM_SLOTS = [
   { slot: 'mcq', weight: 0.25, label: 'Vraag 1' },
   { slot: 'mcq', weight: 0.25, label: 'Vraag 2' },
   { slot: 'open', weight: 1.5, label: 'Vraag 3', preferType: 'open-multi' },
-  { slot: 'adr', weight: 2.5, label: 'Vraag 4' },
-  { slot: 'adr', weight: 2.5, label: 'Vraag 5' },
+  { slot: 'adr-casus', weight: 5, label: 'Vraag 4–5', preferType: 'adr-casus' },
   { slot: 'open', weight: 1.5, label: 'Vraag 6' },
   { slot: 'open', weight: 1.5, label: 'Vraag 7' },
 ];
 
-// Vaste set = jouw echte toets (via getReferenceExamQuestions)
+// Vaste set = examenopbouw (casus met 2 ADR's = 50%)
 const EXAM_REFERENCE = [
   { id: 'smell-01', weight: 0.25, label: 'Vraag 1', note: 'Meerkeuze (0,25 pt) — design smell' },
   { id: 'uml-07', weight: 0.25, label: 'Vraag 2', note: 'Meerkeuze (0,25 pt) — compositie vs aggregatie' },
   { id: 'open-exam-01', weight: 1.5, label: 'Vraag 3', note: 'Open: 3.1, 3.2, 3.3 (1,5 pt)' },
-  { id: 'adr-04', weight: 2.5, label: 'Vraag 4', note: 'ADR legacy (2,5 pt)' },
-  { id: 'adr-05', weight: 2.5, label: 'Vraag 5', note: 'ADR legacy (2,5 pt)' },
+  { id: 'adr-casus-01', weight: 5, label: 'Vraag 4–5', note: 'Casus: 2 Nygard ADR\'s — legacy + module + extern (5 pt, 50%)' },
   { id: 'fact-06', weight: 1.5, label: 'Vraag 6', note: 'Open pseudocode WinFactory (1,5 pt)' },
   { id: 'fact-07', weight: 1.5, label: 'Vraag 7', note: 'Open pseudocode loose coupling (1,5 pt)' },
 ];
 
-// Rubric-upgrades voor bestaande ADR's (oplossingskwaliteit)
-const ADR_RUBRIC_UPGRADES = {
-  'adr-04': {
-    problemMustMention: ['temporal', 'offline', 'coupling', 'uitval', 'niet bereikbaar'],
-    alternativesExpected: ['rest', 'direct', 'rabbitmq', 'queue', 'message', 'synchroon'],
-    solutionQuality: {
-      excellent: [{ patterns: ['rabbitmq', 'message queue', 'message broker', 'queue'], why: 'Lost temporal coupling op — berichten bewaard bij offline legacy.' }],
-      good: [{ patterns: ['kafka', 'event', 'asynchroon', 'async'], why: 'Asynchroon en ontkoppeld.' }],
-      poor: [{ patterns: ['directe rest', 'synchrone rest', 'direct koppelen', 'synchroon api'], penalty: 30, why: 'REST zonder queue lost temporal coupling NIET op — slechte keuze hier.' }],
-    },
-    bestSolution: 'RabbitMQ/message queue: webshop plaatst orders in queue, legacy verwerkt asynchroon wanneer online.',
-  },
-  'adr-05': {
-    problemMustMention: ['legacy', 'oracle', 'koppeling', 'risico', 'schema'],
-    alternativesExpected: ['directe database', 'db', 'csv', 'export', 'api', 'rest'],
-    solutionQuality: {
-      excellent: [{ patterns: ['api', 'rest api', 'api-laag', 'read-only api'], why: 'Loose coupling, geen directe DB-toegang tot legacy schema.' }],
-      good: [{ patterns: ['csv export', 'dagelijkse export', 'etl'], why: 'Acceptabel voor read-only maar minder flexibel dan API.' }],
-      poor: [{ patterns: ['directe database', 'direct db', 'oracle connect', 'shared database'], penalty: 30, why: 'Directe DB-koppeling = tight coupling en hoog risico bij schema-wijzigingen.' }],
-    },
-    bestSolution: 'Read-only REST API-laag boven legacy HR — geen directe Oracle-toegang.',
-  },
-  'adr-06': {
-    problemMustMention: ['10', 'piek', 'capaciteit', 'overload', 'black friday'],
-    alternativesExpected: ['queue', 'throttl', 'cache', 'vervangen', 'buffer'],
-    solutionQuality: {
-      excellent: [{ patterns: ['queue', 'throttl', 'rabbitmq', 'buffer', 'rate limit'], why: 'Beschermt legacy tegen overload, vangt pieken op.' }],
-      acceptable: [{ patterns: ['cache', 'caching'], why: 'Helpt bij reads maar lost write-piek naar legacy niet volledig op.' }],
-      poor: [{ patterns: ['legacy vervangen', 'herschrijven', 'nieuw systeem'], penalty: 10, why: 'Niet realistisch zonder budget/tijd in Context te benoemen.' }],
-    },
-    bestSolution: 'Message queue met throttling: max 10 req/sec naar legacy, pieken opgevangen in queue.',
-  },
-  'adr-08': {
-    problemMustMention: ['real-time', 'realtime', 'mainframe', 'polling', 'actueel'],
-    alternativesExpected: ['websocket', 'polling', 'batch', 'api', 'ftp'],
-    solutionQuality: {
-      excellent: [{ patterns: ['websocket', 'web socket', 'push', 'server sent'], why: 'Real-time updates zonder constante polling-belasting.' }],
-      good: [{ patterns: ['message queue', 'event', 'pub sub'], why: 'Event-driven sync bij wijzigingen.' }],
-      weak: [{ patterns: ['polling', 'elke 5 sec', 'poll'], why: 'Belast legacy onnodig; werkt maar niet optimaal.' }],
-      poor: [{ patterns: ['nightly batch', 'nachtelijk', 'ftp batch'], penalty: 20, why: 'Geen real-time — voldoet niet aan de eis.' }],
-    },
-    bestSolution: 'WebSocket of event-driven push bij voorraadwijzigingen.',
-  },
-};
+// Rubric-upgrades — alleen nog voor MCQ-ADR indien nodig
+const ADR_RUBRIC_UPGRADES = {};
 
 // Merge alles
 function buildQuestionBank() {
   const samenvatting = typeof QUESTIONS_SAMENVATTING !== 'undefined' ? QUESTIONS_SAMENVATTING : [];
-  const all = [...QUESTIONS, ...QUESTIONS_EXTRA, ...samenvatting];
+  const casusesExtra = typeof ADR_CASUSES_EXTRA !== 'undefined' ? ADR_CASUSES_EXTRA : [];
+  const all = [...QUESTIONS, ...QUESTIONS_EXTRA, ...casusesExtra, ...samenvatting];
   all.forEach((q) => {
     if (ADR_RUBRIC_UPGRADES[q.id] && q.rubric) {
       q.rubric = { ...q.rubric, ...ADR_RUBRIC_UPGRADES[q.id] };
     }
     if (typeof ADR_CONTEXT !== 'undefined' && ADR_CONTEXT[q.id]) {
       Object.assign(q, ADR_CONTEXT[q.id]);
+    }
+    if (typeof ADR_CASUS !== 'undefined' && ADR_CASUS[q.id]) {
+      Object.assign(q, ADR_CASUS[q.id]);
     }
   });
   return all;
@@ -699,6 +596,14 @@ function shuffleArray(arr) {
   return a;
 }
 
+function isAdrCasusQuestion(q) {
+  return q.type === 'open-multi' && q.examCasus && (q.parts || []).some((p) => p.type === 'adr-write');
+}
+
+function getAdrCasusQuestions() {
+  return ALL_QUESTIONS.filter(isAdrCasusQuestion);
+}
+
 function getExamPool(slot) {
   switch (slot) {
     case 'mcq':
@@ -708,9 +613,12 @@ function getExamPool(slot) {
     case 'open':
       return ALL_QUESTIONS.filter((q) =>
         ['open-multi', 'open-write', 'open-identify', 'pseudocode-write'].includes(q.type)
+        && !q.examCasus
       );
     case 'adr':
       return ALL_QUESTIONS.filter((q) => q.type === 'adr-write');
+    case 'adr-casus':
+      return ALL_QUESTIONS.filter((q) => isAdrCasusQuestion(q));
     default:
       return [];
   }
@@ -727,7 +635,9 @@ function examNoteForSlot(slot, q) {
       if (q.type === 'pseudocode-write') return `Open pseudocode (1,5 pt)${sectionSuffix}`;
       return `Open vraag (1,5 pt)${sectionSuffix}`;
     case 'adr':
-      return `ADR legacy (2,5 pt)${sectionSuffix}`;
+      return `ADR (2,5 pt)${sectionSuffix}`;
+    case 'adr-casus':
+      return `Casus: 2 Nygard ADR's (5 pt, 50%)${sectionSuffix}`;
     default:
       return sectionSuffix.replace(/^ — /, '');
   }
@@ -764,7 +674,7 @@ function mapExamConfig(cfgList) {
   }).filter(Boolean);
 }
 
-// Willekeurig examen — 2 ADR vast, rest verdeeld over samenvatting-secties 1–17
+// Willekeurig examen — casus-ADR (50%) + rest verdeeld over samenvatting-secties
 function buildRandomExam() {
   const used = new Set();
   const usedSections = new Set();
@@ -772,8 +682,9 @@ function buildRandomExam() {
 
   EXAM_SLOTS.forEach((slot) => {
     const pool = getExamPool(slot.slot).filter((q) => !used.has(q.id));
-    const forceSections = slot.slot === 'adr' ? ['s10'] : [];
-    const q = pickExamQuestion(pool, usedSections, slot.preferType || null, forceSections);
+    const forceSections = slot.slot === 'adr-casus' ? ['s10'] : [];
+    const preferType = slot.preferType === 'adr-casus' ? null : (slot.preferType || null);
+    const q = pickExamQuestion(pool, usedSections, preferType, forceSections);
     if (!q) return;
     used.add(q.id);
     usedSections.add(getQuestionTopic(q));
@@ -781,7 +692,7 @@ function buildRandomExam() {
       ...q,
       examLabel: slot.label,
       examWeight: slot.weight,
-      examNote: examNoteForSlot(slot.slot, q),
+      examNote: slot.note || examNoteForSlot(slot.slot, q),
       examSection: getQuestionTopic(q),
     });
   });

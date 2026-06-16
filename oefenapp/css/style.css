@@ -337,6 +337,26 @@ a.mode-btn {
 
 .adr-template { margin-bottom: 8px; }
 
+.part-adr {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.part-adr:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+
+.casus-step-badge {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
 .tpl-btn {
   background: var(--bg3);
   border: 1px solid var(--border);

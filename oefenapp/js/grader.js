@@ -369,7 +369,9 @@ const Grader = {
   usesAiGrading(q) {
     const aiTypes = ['open-write', 'open-multi', 'open-identify', 'adr-write', 'text'];
     if (!aiTypes.includes(q.type)) return false;
-    if (q.type === 'open-multi') return (q.parts || []).some((p) => ['open-write', 'open-identify'].includes(p.type));
+    if (q.type === 'open-multi') {
+      return (q.parts || []).some((p) => ['open-write', 'open-identify', 'adr-write'].includes(p.type));
+    }
     if (q.rubric?.subtype === 'four-layers' || q.rubric?.subtype === 'loose-coupling') return true;
     return ['open-write', 'open-identify', 'adr-write'].includes(q.type);
   },
@@ -396,7 +398,43 @@ const Grader = {
   },
 
   async gradeOpenMultiAi(q, answers) {
-    // Eén API-call voor alle deelvragen (voorkomt 429)
+    const parts = q.parts || [];
+    const allAdr = parts.length > 0 && parts.every((p) => p.type === 'adr-write');
+
+    // Casus met alleen ADR-deelvragen: per ADR apart beoordelen (betere rubric)
+    if (allAdr && typeof AiGrader !== 'undefined' && AiGrader.hasKey()) {
+      const partResults = {};
+      const feedback = [];
+      let total = 0;
+      let maxW = 0;
+      try {
+        for (const part of parts) {
+          const ans = (answers && answers[part.key]) || '';
+          const partQ = { ...part, question: part.question, systemContext: q.systemContext || part.systemContext };
+          let result = await AiGrader.gradeAdr(partQ, ans);
+          result = this.applyAdrStructureToResult(result, ans);
+          partResults[part.key] = { ...result, aiReviewed: true, modelAnswer: part.modelAnswer };
+          maxW += part.weight || 1;
+          total += (result.score / 100) * (part.weight || 1);
+          feedback.push(`${part.label}: ${result.score}% [AI]`);
+        }
+        const score = maxW ? Math.round((total / maxW) * 100) : 0;
+        return {
+          score,
+          correct: score >= 70,
+          feedback,
+          partResults,
+          modelAnswer: q.modelAnswer,
+          aiReviewed: true,
+        };
+      } catch (err) {
+        const local = this.gradeOpenMulti(q, answers);
+        local.feedback.unshift(`AI: ${err.message} — lokale beoordeling`);
+        return local;
+      }
+    }
+
+    // Overige open-multi: één batch API-call
     if (typeof AiGrader !== 'undefined' && AiGrader.hasKey()) {
       try {
         return await AiGrader.gradeMulti(q, answers);

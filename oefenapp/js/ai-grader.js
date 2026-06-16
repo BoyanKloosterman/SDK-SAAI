@@ -84,7 +84,11 @@ HARD REQUIREMENTS (score max 65 als niet voldaan):
 3. Nygard-secties: titel (#), Status, Context, Decision, Consequences
 4. Context: kernprobleem + minimaal 2 overwogen alternatieven
 
-Beoordeel ook of de gekozen oplossing past bij het legacy-scenario (temporal coupling, offline legacy, etc.).
+Beoordeel ook of de gekozen oplossing past bij het scenario (messaging & events les):
+- Temporal coupling (systemen moeten tegelijk online?) vs async queue
+- Behavioral coupling (producer kent alle consumers?) vs pub/sub exchange
+- Events: verleden tijd (GameEnded, OrderPlaced), thin vs fat
+- RabbitMQ: exchange, routing key, ACK/NACK, DLQ, idempotency, at-least-once
 
 Geef ALLEEN geldig JSON:
 {"score":0-100,"correct":true/false,"structureOk":true/false,"feedback":["max 6 punten NL"],"missing":["ontbreekt"],"strengths":["goed"]}`;
@@ -100,16 +104,25 @@ Score 70+ alleen als structuur én inhoud voldoende zijn. Zet structureOk=false 
   },
 
   buildMultiPrompt(question, answers) {
+    const casusCtx = question.systemContext || '';
+    const isAdrCasus = question.examCasus && (question.parts || []).some((p) => p.type === 'adr-write');
     const parts = (question.parts || []).map((p) => {
       const ans = answers[p.key] || '(leeg)';
-      return `--- ${p.label} ---\nVraag: ${p.question}\nModel: ${p.modelAnswer || ''}\nStudent: ${ans}`;
+      const rubricHint = p.rubric?.bestSolution ? `\nRubric: ${p.rubric.bestSolution}` : '';
+      return `--- ${p.label} (${p.type}) ---\nVraag: ${p.question}\nModel: ${p.modelAnswer || ''}${rubricHint}\nStudent: ${ans}`;
     }).join('\n\n');
 
-    const system = `Je bent examinator SDK & SAAI. Beoordeel ELKE deelvraag apart.
+    const system = isAdrCasus
+      ? `Je bent examinator SDK & SAAI. Beoordeel ELKE Nygard ADR apart op de gedeelde casus.
+Per ADR: min. 2 beslissingen in Decision, min. 1 + en 1 - in Consequences, min. 2 alternatieven in Context.
+Beoordeel of de ADR de toekomstige kwaliteit van het bestaande systeem verhoogt (messaging/events).
+Geef ALLEEN JSON:
+{"parts":{"adr1":{"score":0-100,"correct":bool,"structureOk":bool,"feedback":["..."],"missing":[]},"adr2":{...}},"overall":0-100}`
+      : `Je bent examinator SDK & SAAI. Beoordeel ELKE deelvraag apart.
 Geef ALLEEN JSON:
 {"parts":{"a":{"score":0-100,"correct":bool,"feedback":["..."],"missing":[]},"b":{...}},"overall":0-100}`;
 
-    const user = `Beoordeel alle deelvragen:\n\n${parts}`;
+    const user = `${casusCtx ? 'Gedeelde casus:\n' + casusCtx + '\n\n' : ''}${question.question ? 'Opdracht: ' + question.question + '\n\n' : ''}Beoordeel alle deelvragen:\n\n${parts}`;
     return { system, user };
   },
 
