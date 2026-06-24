@@ -121,7 +121,8 @@ void go() { zzz(b, tmp); }`,
   },
   {
     id: 'open-factory-01', category: 'factory', type: 'open-write',
-    question: 'LinFactory en MacFactory bestaan. GUIFactory heeft createButton() en createCheckbox(). Leg stap voor stap uit hoe je WinFactory toevoegt (Abstract Factory stap 2).',
+    question: 'Bekijk het klassendiagram. LinFactory en MacFactory implementeren GUIFactory; Application hangt alleen van het interface af.\n\nLeg stap voor stap uit hoe je WinFactory toevoegt (Abstract Factory stap 2) zónder bestaande factories of Application te wijzigen.',
+    uml: FACTORY_UML.guiAbstract,
     rubric: {
       minLength: 80,
       keywordGroups: [
@@ -258,31 +259,51 @@ Voordeel: overstappen van MySQL naar XML = alleen nieuwe DAO + aanpassing in mai
   },
   {
     id: 'open-exam-02', category: 'factory', type: 'open-multi',
-    question: 'Open examenvraag — Factory pattern en pseudocode.',
+    question: 'Open examenvraag — Abstract Factory (GUI per besturingssysteem)\n\nBekijk het klassendiagram. LinFactory en MacFactory leveren al Linux- en macOS-widgets. Je team moet nu ook Windows ondersteunen.',
+    uml: FACTORY_UML.guiAbstract,
     parts: [
       {
         key: 'a', label: 'a', weight: 1, type: 'open-write',
-        question: 'GUIFactory interface bestaat met LinFactory en MacFactory. Beschrijf hoe je WinFactory toevoegt zonder bestaande code te wijzigen.',
+        question: 'In het diagram implementeren LinFactory en MacFactory GUIFactory; Application gebruikt alleen het interface (niet LinFactory of MacFactory direct).\n\nBeschrijf stap voor stap hoe je WinFactory toevoegt zónder LinFactory, MacFactory of Application te wijzigen. Noem welke concrete klassen je aanmaakt en welk principe dit illustreert.',
         rubric: {
-          minLength: 60,
+          minLength: 80,
           keywordGroups: [
-            { words: ['winfactory implements'], points: 15 },
-            { words: ['winbutton', 'wincheckbox'], points: 15 },
-            { words: ['ocp', 'nieuwe klasse', 'geen bestaande'], points: 10 },
+            { words: ['winfactory', 'implements', 'guifactory'], points: 15, label: 'WinFactory implements GUIFactory' },
+            { words: ['winbutton', 'wincheckbox', 'createbutton', 'createcheckbox'], points: 15, label: 'Concrete producten' },
+            { words: ['new win', 'return new'], points: 10, label: 'Factory-methodes' },
+            { words: ['ocp', 'open closed', 'uitbreiden'], points: 10, label: 'OCP' },
+            { words: ['geen bestaande', 'niet aanpassen', 'nieuwe klasse'], points: 10, label: 'Bestaande code intact' },
           ],
         },
+        modelAnswer: '1) Nieuwe klasse WinFactory implements GUIFactory. 2) createButton() → return new WinButton(); createCheckbox() → return new WinCheckbox(). 3) main kiest new WinFactory() en geeft die aan Application — Application blijft ongewijzigd. OCP: uitbreiden met nieuwe familie zonder bestaande factories aan te passen.',
       },
       {
         key: 'b', label: 'b', weight: 1, type: 'pseudocode-write',
-        question: 'Schrijf pseudocode voor WinFactory en main.',
+        question: 'Schrijf pseudocode voor WinFactory en main.\n\nSluit aan op het diagram: WinFactory implementeert GUIFactory; Application krijgt een GUIFactory via de constructor. LinFactory, MacFactory en Application bestaan al — schrijf alleen WinFactory en main.',
+        codeContext: FACTORY_CODE.guiInterface,
         rubric: {
-          mustHave: ['WinFactory', 'GUIFactory', 'createButton', 'createCheckbox', 'main', 'new'],
-          mainMustHave: ['main', 'WinFactory', 'Application'],
+          mustHave: ['class WinFactory', 'implements', 'GUIFactory', 'createButton', 'createCheckbox', 'WinButton', 'WinCheckbox', 'new'],
+          mainMustHave: ['main', 'WinFactory', 'Application', 'new'],
           diPattern: true,
         },
-        modelAnswer: 'WinFactory implements GUIFactory; main injecteert in Application.',
+        modelAnswer: `class WinFactory implements GUIFactory
+  createButton() : Button
+    return new WinButton()
+  end
+  createCheckbox() : Checkbox
+    return new WinCheckbox()
+  end
+end
+
+main
+  factory = new WinFactory()
+  app = new Application(factory)
+  app.run()
+end`,
       },
     ],
+    modelAnswer: 'a: WinFactory implements GUIFactory + WinButton/WinCheckbox, OCP. b: pseudocode WinFactory + main met dependency injection.',
+    explain: 'Diagram → uitleg (a) → pseudocode (b), zoals op het examen.',
   },
 
   // === EXTRA OPEN VRAGEN (weinig meerkeuze, zoals echte toets) ===
@@ -450,17 +471,46 @@ Voordeel: overstappen van MySQL naar XML = alleen nieuwe DAO + aanpassing in mai
   },
   {
     id: 'open-factory-03', category: 'factory', type: 'pseudocode-write',
-    question: 'Schrijf pseudocode: DAOFactory interface, SqlDAOFactory en XmlDAOFactory. Main injecteert factory in BookManager.',
+    question: 'Bekijk het klassendiagram. Schrijf pseudocode voor DAOFactory, SqlDAOFactory, XmlDAOFactory en main.\n\nBookManager hangt alleen van DAOFactory af. Main kiest SqlDAOFactory en injecteert die in BookManager.',
+    uml: FACTORY_UML.daoAbstract,
+    codeContext: FACTORY_CODE.daoInterface,
     rubric: {
       mustHave: ['DAOFactory', 'SqlDAOFactory', 'XmlDAOFactory', 'implements', 'BookManager', 'main', 'new', 'create'],
       mainMustHave: ['main', 'SqlDAOFactory', 'BookManager'],
       diPattern: true,
     },
-    modelAnswer: 'interface DAOFactory, concrete factories, main: new SqlDAOFactory() → BookManager(factory).',
+    modelAnswer: `interface DAOFactory
+  createMemberDAO() : IMemberDAO
+  createBookDAO() : IBookDAO
+end
+
+class SqlDAOFactory implements DAOFactory
+  createMemberDAO() : IMemberDAO
+    return new SqlMemberDAO()
+  end
+  createBookDAO() : IBookDAO
+    return new SqlBookDAO()
+  end
+end
+
+class XmlDAOFactory implements DAOFactory
+  createMemberDAO() : IMemberDAO
+    return new XmlMemberDAO()
+  end
+  createBookDAO() : IBookDAO
+    return new XmlBookDAO()
+  end
+end
+
+main
+  factory = new SqlDAOFactory()
+  manager = new BookManager(factory)
+end`,
   },
   {
     id: 'open-factory-04', category: 'factory', type: 'open-write',
-    question: 'Waarom maakt de Manager NOOIT zelf `new SqlMemberDAO()`? Leg loose coupling uit.',
+    question: 'Bekijk het klassendiagram. MemberManager hangt af van IMemberDAO (niet van SQLMemberDAO).\n\nWaarom maakt MemberManager NOOIT zelf `new SQLMemberDAO()`? Leg loose coupling en dependency injection uit.',
+    uml: FACTORY_UML.memberDi,
     rubric: {
       minLength: 50,
       keywordGroups: [

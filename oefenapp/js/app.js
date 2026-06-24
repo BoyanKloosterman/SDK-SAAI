@@ -421,6 +421,7 @@ const App = {
           </div>`;
         }
         if (part.code) partHtml += `<pre class="code-block">${this.escapeHtml(part.code)}</pre>`;
+        if (part.codeContext) partHtml += `<pre class="code-block context">${this.escapeHtml(part.codeContext)}</pre>`;
         partHtml += `<textarea class="text-answer part-answer${part.type === 'adr-write' ? ' adr-answer' : ''}" data-part="${part.key}" rows="${rows}"
           placeholder="Schrijf ${this.escapeHtml(part.label)}...">${this.escapeHtml(partSaved)}</textarea></div>`;
         return partHtml;

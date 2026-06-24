@@ -381,41 +381,8 @@ class Square implements IShape { void draw() { /* ... */ } }
   },
   {
     id: 'fact-05', category: 'factory', type: 'factory-uml',
-    question: 'Bekijk het UML-diagram. LinFactory en MacFactory implementeren GUIFactory. Wat moet WinFactory doen?',
-    uml: `classDiagram
-    class GUIFactory {
-        <<interface>>
-        +createButton() Button
-        +createCheckbox() Checkbox
-    }
-    class LinFactory {
-        +createButton() LinButton
-        +createCheckbox() LinCheckbox
-    }
-    class MacFactory {
-        +createButton() MacButton
-        +createCheckbox() MacCheckbox
-    }
-    class WinFactory {
-        +createButton() WinButton
-        +createCheckbox() WinCheckbox
-    }
-  class Button { <<interface>> }
-  class Checkbox { <<interface>> }
-  class LinButton
-  class MacButton
-  class WinButton
-  class LinCheckbox
-  class MacCheckbox
-  class WinCheckbox
-  GUIFactory <|.. LinFactory
-  GUIFactory <|.. MacFactory
-  Button <|.. LinButton
-  Button <|.. MacButton
-  Button <|.. WinButton
-  Checkbox <|.. LinCheckbox
-  Checkbox <|.. MacCheckbox
-  Checkbox <|.. WinCheckbox`,
+    question: 'Bekijk het klassendiagram. LinFactory en MacFactory implementeren GUIFactory. WinFactory ontbreekt nog — wat moet WinFactory doen?',
+    uml: FACTORY_UML.guiWinQuiz,
     options: [
       'implements GUIFactory, maakt WinButton en WinCheckbox',
       'extends LinFactory',
@@ -427,13 +394,8 @@ class Square implements IShape { void draw() { /* ... */ } }
   },
   {
     id: 'fact-06', category: 'factory', type: 'pseudocode-write',
-    question: 'Schrijf pseudocode voor WinFactory en de main-klasse.\n\nGegeven: GUIFactory interface met createButton() en createCheckbox(). LinFactory en MacFactory bestaan al. De Application-klasse krijgt een GUIFactory via constructor.',
-    codeContext: `interface GUIFactory {
-  createButton() : Button
-  createCheckbox() : Checkbox
-}
-// LinFactory, MacFactory bestaan
-// Application(GUIFactory factory)`,
+    question: 'Bekijk het klassendiagram. Schrijf pseudocode voor WinFactory en main.\n\nSluit aan op het diagram: WinFactory implementeert GUIFactory; Application krijgt een GUIFactory via de constructor. LinFactory, MacFactory en Application bestaan al — schrijf alleen WinFactory en main.',
+    codeContext: FACTORY_CODE.guiInterface,
     rubric: {
       mustHave: ['class WinFactory', 'implements', 'GUIFactory', 'createButton', 'createCheckbox', 'WinButton', 'WinCheckbox', 'new'],
       mainMustHave: ['main', 'WinFactory', 'Application', 'new'],
@@ -454,20 +416,12 @@ main
   app.run()
 end`,
     explain: 'WinFactory implementeert GUIFactory. main maakt factory en injecteert in Application.',
-    uml: `classDiagram
-  class GUIFactory { <<interface>> +createButton() +createCheckbox() }
-  class WinFactory { +createButton() +createCheckbox() }
-  class Application { -factory: GUIFactory }
-  class WinButton
-  class WinCheckbox
-  GUIFactory <|.. WinFactory
-  Application --> GUIFactory
-  WinFactory ..> WinButton
-  WinFactory ..> WinCheckbox`,
+    uml: FACTORY_UML.guiAbstract,
   },
   {
     id: 'fact-07', category: 'factory', type: 'pseudocode-write',
-    question: 'Schrijf pseudocode voor loose coupling: MemberManager die alleen van IMemberDAO afhangt, en main die SQLMemberDAO injecteert.',
+    question: 'Bekijk het klassendiagram. Schrijf pseudocode voor loose coupling met dependency injection.\n\nMemberManager mag alleen van IMemberDAO afhangen; main kiest de concrete implementatie (SQLMemberDAO) en injecteert die via de constructor.',
+    codeContext: FACTORY_CODE.memberDi,
     rubric: {
       mustHave: ['MemberManager', 'IMemberDAO', 'constructor', 'main', 'SQLMemberDAO', 'new'],
       diPattern: true,
@@ -493,32 +447,20 @@ main
   manager = new MemberManager(dao)
 end`,
     explain: 'Manager kent alleen interface. main doet dependency injection.',
-    uml: `classDiagram
-  class IMemberDAO { <<interface>> +find() +save() }
-  class SQLMemberDAO
-  class MemberManager { -dao: IMemberDAO }
-  IMemberDAO <|.. SQLMemberDAO
-  MemberManager --> IMemberDAO`,
+    uml: FACTORY_UML.memberDi,
   },
   {
     id: 'fact-08', category: 'factory', type: 'factory-uml',
-    question: 'DAOFactory abstract factory: SQLServerDAOFactory en TestDataDAOFactory. Wat doet de Manager?',
-    uml: `classDiagram
-    class DAOFactory { <<interface>> +createMemberDAO() +createBookDAO() }
-    class SQLServerDAOFactory
-    class TestDataDAOFactory
-    class MemberManager { -factory: DAOFactory }
-    DAOFactory <|.. SQLServerDAOFactory
-    DAOFactory <|.. TestDataDAOFactory
-    MemberManager --> DAOFactory`,
+    question: 'Bekijk het klassendiagram. DAOFactory is een abstract factory met SqlDAOFactory en XmlDAOFactory. Wat doet BookManager?',
+    uml: FACTORY_UML.daoAbstract,
     options: [
-      'Kent alleen DAOFactory interface, vraagt factory.createMemberDAO()',
-      'Maakt zelf new SQLMemberDAO()',
+      'Kent alleen DAOFactory interface, vraagt factory.createBookDAO()',
+      'Maakt zelf new SqlBookDAO()',
       'Kent alle concrete DAO-klassen',
-      'Slaat SQL over en gebruikt altijd TestData',
+      'Slaat XML over en gebruikt altijd SQL',
     ],
     answer: 0,
-    explain: 'Manager is loose coupled: alleen DAOFactory interface, geen concrete DAO\'s.',
+    explain: 'BookManager is loose coupled: alleen DAOFactory interface, geen concrete DAO\'s.',
   },
 
   // === MESSAGING (6) ===
@@ -641,7 +583,8 @@ end`,
   },
   {
     id: 'fact-09', category: 'factory', type: 'pseudocode-write',
-    question: 'Schrijf pseudocode: main maakt LinFactory aan en geeft die aan Application. Application roept factory.createButton() aan.',
+    question: 'Bekijk het klassendiagram. Schrijf pseudocode voor main en Application.\n\nmain maakt een LinFactory aan en injecteert die in Application. Application roept daarna factory.createButton() aan. LinFactory bestaat al.',
+    codeContext: FACTORY_CODE.guiLinMain,
     rubric: {
       mustHave: ['main', 'LinFactory', 'Application', 'createButton', 'new', 'factory'],
       mainMustHave: ['main', 'LinFactory', 'Application'],
@@ -664,12 +607,7 @@ class Application
   end
 end`,
     explain: 'main instantieert concrete factory en injecteert via constructor.',
-    uml: `classDiagram
-  class GUIFactory { <<interface>> +createButton() }
-  class LinFactory
-  class Application { -factory: GUIFactory }
-  GUIFactory <|.. LinFactory
-  Application --> GUIFactory`,
+    uml: FACTORY_UML.guiAbstract,
   },
   {
     id: 'fact-10', category: 'factory', type: 'mcq',
@@ -740,7 +678,7 @@ end`,
   },
   {
     id: 'fact-11', category: 'factory', type: 'factory-uml',
-    question: 'MonsterFactory met FrostyFactory, FieryFactory, GoldFactory. Je voegt SilverFactory toe. Wat moet je doen?',
+    question: 'Bekijk het klassendiagram. MonsterFactory met FrostyFactory, FieryFactory en GoldFactory. Je voegt SilverFactory toe. Wat moet je doen?',
     uml: `classDiagram
     class MonsterFactory { <<interface>> +createSpider() +createDuck() +createTiger() }
     class FrostyFactory
