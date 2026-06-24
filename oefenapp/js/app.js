@@ -306,7 +306,7 @@ const App = {
       ? (casusStep === 2 && q.umlPart2 ? q.umlPart2 : q.uml)
       : q.uml;
     if (umlBlock) {
-      const umlLabel = (q.type === 'adr-write' || q.examCasus) ? 'Architectuur — huidige vs gewenste richting' : '';
+      const umlLabel = (q.type === 'adr-write' || q.examCasus) ? 'Situatieschets — huidige koppeling' : '';
       if (umlLabel) body += `<p class="uml-label">${umlLabel}</p>`;
       body += `<div class="uml-wrap"><div class="mermaid">${umlBlock}</div></div>`;
     }
@@ -408,7 +408,7 @@ const App = {
           <p class="part-q">${this.escapeHtml(part.question).replace(/\n/g, '<br>')}</p>
           <div class="adr-template">
             <button type="button" class="tpl-btn part-tpl-btn" data-part="${part.key}">Nygard template ${this.escapeHtml(part.label)}</button>
-            <span class="hint">Min. 2 beslissingen, min. 1 + en 1 - in Consequences.</span>
+            <span class="hint">Nygard-formaat: Context, Decision (min. 2 keuzes), Consequences (+ en -).</span>
           </div>
           <textarea class="text-answer part-answer adr-answer" data-part="${part.key}" rows="16"
             placeholder="Schrijf ${this.escapeHtml(part.label)}...">${this.escapeHtml(partSaved)}</textarea></div>`;
@@ -423,7 +423,7 @@ const App = {
         if (part.type === 'adr-write') {
           partHtml += `<div class="adr-template">
             <button type="button" class="tpl-btn part-tpl-btn" data-part="${part.key}">Nygard template ${this.escapeHtml(part.label)}</button>
-            <span class="hint">Min. 2 beslissingen, min. 1 + en 1 - in Consequences.</span>
+            <span class="hint">Nygard-formaat: Context, Decision (min. 2 keuzes), Consequences (+ en -).</span>
           </div>`;
         }
         if (part.code) partHtml += `<pre class="code-block">${this.escapeHtml(part.code)}</pre>`;
@@ -447,10 +447,10 @@ const App = {
     if (q.type === 'adr-write') {
       return `<div class="adr-template">
           <button type="button" class="tpl-btn" id="insert-adr-template">Nygard template invoegen</button>
-          <span class="hint">Verplicht: min. 2 concrete beslissingen in Decision, min. 1 voordeel (+) en 1 nadeel (-) in Consequences.</span>
+          <span class="hint">Nygard-formaat: Context, Decision (min. 2 keuzes), Consequences (+ en -).</span>
         </div>
         <textarea class="text-answer adr-answer" id="text-answer" rows="18"
-          placeholder="Schrijf je Nygard ADR (RabbitMQ, events, temporal/behavioral coupling)...">${saved || ''}</textarea>`;
+          placeholder="Schrijf je Nygard ADR op basis van de casus...">${saved || ''}</textarea>`;
     }
 
     if (q.type === 'pseudocode-write') {
@@ -534,17 +534,15 @@ const App = {
 Proposed
 
 ## Context
-[Probleem: temporal/behavioral coupling, sync vs async. Min. 2 overwogen alternatieven uit de les: sync REST, P2P queue, pub/sub exchange]
+[Beschrijf het probleem uit de casus. Welke opties heb je overwogen en waarom niet gekozen?]
 
 ## Decision
-1. [Eerste concrete keuze — bijv. welke technologie]
-2. [Tweede concrete keuze — bijv. hoe het werkt / werkwijze]
+1. [Eerste concrete keuze]
+2. [Tweede concrete keuze]
 
 ## Consequences
-+ [voordeel 1]
-+ [voordeel 2 — optioneel]
-- [nadeel 1]
-- [nadeel 2 — optioneel]`;
++ [voordeel]
+- [nadeel]`;
   },
 
   getAnswer(q) {
@@ -829,7 +827,7 @@ Proposed
       alert('AI-module niet geladen.');
       return;
     }
-    if (AiGrader.VERSION !== '5') {
+    if (AiGrader.VERSION !== '5' && AiGrader.VERSION !== '6') {
       resultEl.classList.remove('hidden');
       resultEl.className = 'api-test-result fail';
       resultEl.innerHTML = '<strong>Verouderde versie geladen</strong><br>Druk <strong>Ctrl+Shift+R</strong> (harde refresh) en test opnieuw.';

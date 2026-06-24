@@ -1,4 +1,4 @@
-// Gedeelde casuscontext — deel 1 (ADR 1) en deel 2 (ADR 2) per casus
+// Gedeelde casuscontext — feiten over het systeem, geen voorgeschreven oplossingen
 const ADR_CONTEXT = {};
 
 const ADR_CASUS = {
@@ -19,34 +19,32 @@ const ADR_CASUS = {
 - Cloud REST API van logistieke partner
 - (Komt in deel 2 aan bod — nu focus op ERP-koppeling)
 
-## Huidige koppeling Order Service → ERP
+## Huidige koppeling
 
 \`\`\`
 Webshop → Order Service → sync REST → Legacy ERP
 \`\`\`
 
-| Probleem | Impact |
-|----------|--------|
-| **Temporal coupling** | ERP offline = mislukte orders, checkout faalt |
-| Geen buffer | Geen retry zonder checkout te blokkeren |
-| Tight coupling | Order Service kent ERP-contract direct |
+**Wat er misgaat**
+- ERP offline → mislukte orders, checkout faalt
+- Geen buffer: retry zonder checkout te blokkeren is lastig
+- Order Service kent het ERP-contract direct
 
 ## Jouw opdracht — ADR 1
 
-Leg vast hoe je **Order Service ↔ Legacy ERP** ontkoppelt in **tijd** (temporal decoupling). Overwogen: sync REST, point-to-point queue, nachtelijke batch.`,
+Leg in een Nygard ADR vast hoe je de koppeling **Order Service ↔ Legacy ERP** verbetert.`,
     systemContextPart2: `## Casus — deel 2: informeren na verzending
 
 **Situatie na ADR 1**
-- Order Service ↔ ERP loopt via RabbitMQ queue (temporal decoupling opgelost)
-- Orders worden asynchroon verwerkt wanneer ERP online is
+- Je hebt in ADR 1 de koppeling Order Service ↔ ERP heringericht
 
-**Nieuw probleem — behavioral coupling**
-Na verzending moeten **drie systemen** reageren:
+**Wat er nu speelt**
+Na verzending moeten **drie systemen** iets doen:
 - **Fulfillment SaaS** (extern) — picklist/status
 - **Magazijn-app** (intern) — voorraadmutatie
 - **Marketing** — "recent verzonden"-feed
 
-Nu roept Order Service alles **synchroon REST** aan. Nieuw magazijn-systeem erbij = Order Service opnieuw aanpassen.
+**Huidige koppeling**
 
 \`\`\`
 Order Service → sync REST → Fulfillment SaaS
@@ -54,45 +52,32 @@ Order Service → sync REST → Fulfillment SaaS
               → sync REST → Marketing
 \`\`\`
 
-| Probleem | Term uit de les |
-|----------|-----------------|
-| Behavioral coupling | Producer kent alle consumers |
-| Point-to-point | N×M koppelingen — schaalt niet |
+**Wat er misgaat**
+- Order Service kent en roept elke bestemming direct aan
+- Nieuw systeem erbij → Order Service opnieuw aanpassen
+- Externe en interne partijen op dezelfde manier gekoppeld
 
 ## Jouw opdracht — ADR 2
 
-Leg vast hoe je **intern + extern** informeert na verzending — **bouwt voort op ADR 1**. Overwogen: meer P2P REST, point-to-point queues, pub/sub exchange met \`OrderShipped\` event.`,
+Leg vast hoe je na verzending informeert (intern én extern). **Bouwt voort op ADR 1.**`,
     uml: `flowchart TB
-    subgraph huidig [Huidige situatie - sync P2P]
-      WS[Webshop]
-      OS[Order Service]
-      ERP[Legacy ERP]
-      FF[Fulfillment SaaS extern]
-      WS --> OS
-      OS -->|sync REST| ERP
-      OS -->|sync REST| FF
-    end
-    subgraph gewenst [Richting messaging]
-      OS2[Order Service]
-      Q[(RabbitMQ queue)]
-      EX[Exchange pub/sub]
-      OS2 --> Q
-      OS2 -->|OrderShipped| EX
-    end`,
+    WS[Webshop]
+    OS[Order Service]
+    ERP[Legacy ERP]
+    WS --> OS
+    OS -->|sync REST| ERP`,
     umlPart2: `flowchart TB
     OS[Order Service]
-    EX[RabbitMQ Exchange]
-    FF[Fulfillment SaaS]
-    WH[Magazijn]
+    FF[Fulfillment SaaS extern]
+    WH[Magazijn intern]
     MK[Marketing]
-    OS -->|OrderShipped event| EX
-    EX --> FF
-    EX --> WH
-    EX --> MK`,
+    OS -->|sync REST| FF
+    OS -->|sync REST| WH
+    OS -->|sync REST| MK`,
   },
 
   'adr-casus-02': {
-    systemContext: `## Casus — deel 1: GameEnd en leaderboard (temporal coupling)
+    systemContext: `## Casus — deel 1: GameEnd en leaderboard
 
 **Game Server**
 - Na elke wedstrijd: \`GameEnd()\`
@@ -104,50 +89,51 @@ Leg vast hoe je **intern + extern** informeert na verzending — **bouwt voort o
 - Monolith, moeilijk te schalen
 - Geen async API
 
-## Probleem (les: temporal coupling)
+## Huidige koppeling
 
-| Probleem | Uitleg |
-|----------|--------|
-| Temporal coupling | Game server wacht op leaderboard |
-| Cascade | Langzame call blokkeert hele GameEnd |
-| Offline leaderboard | Geen games kunnen eindigen |
+\`\`\`
+GameEnd() → sync → UpdateLeaderboard()  (~30s)
+\`\`\`
+
+**Wat er misgaat**
+- Game server wacht op leaderboard
+- Langzame call blokkeert hele GameEnd
+- Offline leaderboard → geen games kunnen eindigen
 
 ## Jouw opdracht — ADR 1
 
-Leg vast hoe je **GameEnd ↔ leaderboard** ontkoppelt. Overwogen: sync blijven, point-to-point queue, batch.`,
-    systemContextPart2: `## Casus — deel 2: notify + email (behavioral coupling)
+Leg vast hoe je **GameEnd ↔ leaderboard** verbetert.`,
+    systemContextPart2: `## Casus — deel 2: notify en email
 
 **Situatie na ADR 1**
-- Leaderboard-updates lopen async via queue (temporal coupling opgelost)
+- Je hebt in ADR 1 GameEnd ↔ leaderboard heringericht
 
-**Nog steeds sync in GameEnd**
+**Wat er nog sync in GameEnd zit**
 - \`NotifyViewers()\` — push naar kijkers
 - \`SendWinnerEmail()\` — extern email SaaS
-- Nieuwe feature (bijv. Discord-notify) = **game server aanpassen**
+- Nieuwe feature (bijv. extra notificatie) = **game server aanpassen**
 
-## Probleem (les: behavioral coupling)
-
-Game server **kent alle downstream-systemen**. Extern SaaS en interne services worden direct aangeroepen.
+**Wat er misgaat**
+- Game server kent alle downstream-systemen
+- Extern SaaS en interne services worden direct aangeroepen
 
 ## Jouw opdracht — ADR 2
 
-Leg vast hoe je subscribers informeert **zonder** game server te wijzigen bij elke nieuwe consumer. Overwogen: meer sync calls, P2P queues, pub/sub met \`GameEnded\` event. **Verwijs naar ADR 1.**`,
-    uml: `flowchart TB
+Leg vast hoe je partijen informeert zonder bij elke nieuwe ontvanger de game server te wijzigen. **Verwijs naar ADR 1.**`,
+    uml: `flowchart LR
     GS[Game Server GameEnd]
-    LB[UpdateLeaderboard 30s]
-    GS -->|sync| LB`,
+    LB[UpdateLeaderboard]
+    GS -->|sync ~30s| LB`,
     umlPart2: `flowchart TB
-    GS[Game Server]
-    EX[RabbitMQ Exchange]
+    GS[Game Server GameEnd]
     NV[NotifyViewers]
     EM[Email SaaS extern]
-    GS -->|GameEnded event| EX
-    EX --> NV
-    EX --> EM`,
+    GS -->|sync| NV
+    GS -->|sync| EM`,
   },
 
   'adr-casus-03': {
-    systemContext: `## Casus — deel 1: webshop en legacy bibliotheek (temporal coupling)
+    systemContext: `## Casus — deel 1: webshop en legacy bibliotheek
 
 **Legacy bibliotheeksysteem (COBOL)**
 - Uitleningen en reserveringen
@@ -161,45 +147,57 @@ Leg vast hoe je subscribers informeert **zonder** game server te wijzigen bij el
 **Extern betalingsplatform**
 - (Komt in deel 2 — nu focus op legacy-koppeling)
 
-## Probleem
+## Huidige koppeling
 
-| Probleem | Term |
-|----------|------|
-| Legacy offline → checkout faalt | **Temporal coupling** |
-| Geen buffer | Berichten gaan verloren |
+\`\`\`
+Webshop → sync REST → Legacy COBOL
+\`\`\`
+
+**Wat er misgaat**
+- Legacy offline → checkout faalt
+- Geen buffer voor uitleningen buiten openingstijden legacy
 
 ## Jouw opdracht — ADR 1
 
-Leg vast hoe webshop ↔ legacy COBOL ontkoppelt in tijd. Overwogen: sync REST, RabbitMQ queue, nachtelijke batch.`,
+Leg vast hoe je **webshop ↔ legacy COBOL** verbetert.`,
     systemContextPart2: `## Casus — deel 2: reservering, betaling en magazijn
 
 **Situatie na ADR 1**
-- Uitleningen via durable queue naar legacy-adapter (temporal opgelost)
+- Je hebt in ADR 1 webshop ↔ legacy heringericht
 
-**Nieuw probleem na reservering**
+**Wat er na reservering moet gebeuren**
 - **Extern betalingsplatform** (SaaS) moet betaling starten
 - **Intern magazijn** moet exemplaar reserveren
-- Webshop roept beide **synchroon** aan → behavioral coupling
+- Webshop roept beide **synchroon** aan
+
+## Huidige koppeling
+
+\`\`\`
+Webshop → sync → Betalingsplatform
+        → sync → Magazijn
+\`\`\`
+
+**Wat er misgaat**
+- Webshop kent en orkestreert alle vervolgstappen
+- Uitbreiden met nieuwe stap = webshop aanpassen
 
 ## Jouw opdracht — ADR 2
 
-Leg vast hoe je na \`LoanReserved\` informeert (intern + extern). Overwogen: sync keten, P2P queues, pub/sub event. **Bouwt voort op ADR 1.**`,
+Leg vast hoe je na een reservering betaling en magazijn aanstuurt (intern + extern). **Bouwt voort op ADR 1.**`,
     uml: `flowchart LR
     WS[Webshop]
     LEG[Legacy COBOL]
     WS -->|REST sync| LEG`,
     umlPart2: `flowchart TB
     WS[Webshop]
-    EX[RabbitMQ Exchange]
     PAY[Extern betaling SaaS]
     WH[Magazijn intern]
-    WS -->|LoanReserved| EX
-    EX --> PAY
-    EX --> WH`,
+    WS -->|sync| PAY
+    WS -->|sync| WH`,
   },
 
   'adr-casus-04': {
-    systemContext: `## Casus — deel 1: Black Friday piek (performance)
+    systemContext: `## Casus — deel 1: Black Friday piek
 
 **Legacy mainframe betalingen**
 - Max **10 requests/seconde**
@@ -207,52 +205,41 @@ Leg vast hoe je na \`LoanReserved\` informeert (intern + extern). Overwogen: syn
 
 **Checkout-module (nieuw)**
 - Synchrone \`PaymentService.pay()\` → mainframe
-- Thread blokkeert 2–5 sec
+- Thread blokkeert 2–5 sec per betaling
 
 **Black Friday**
 - Verwacht **1000 betalingen/seconde**
-- Sync = overload, retry storms, timeouts
+- Sync leidt tot overload, retry storms en timeouts
 
-## Messaging-concept
+## Huidige koppeling
 
-Producer → queue → consumer throttle max 10/s naar legacy.
+\`\`\`
+Checkout → sync → Mainframe (max 10/s)
+\`\`\`
 
 ## Jouw opdracht — ADR 1
 
-Leg vast hoe je legacy beschermt bij piekbelasting. Overwogen: sync retry, queue + throttling, unlimited competing consumers.`,
-    systemContextPart2: `## Casus — deel 2: betrouwbaarheid + fraudedetectie
+Leg vast hoe je het legacy betalingssysteem beschermt bij piekbelasting.`,
+    systemContextPart2: `## Casus — deel 2: betrouwbaarheid en fraudedetectie
 
 **Situatie na ADR 1**
-- Betalingen via RabbitMQ queue met throttling (piek opgevangen)
+- Je hebt in ADR 1 piekbelasting op het mainframe aangepakt
 
-**Nieuwe problemen**
-- Broker levert **at-least-once** → duplicaten mogelijk
-- **Poison messages** kunnen queue blokkeren
-- **Extern fraudedetectie SaaS** moet elke betaling zien (subscriber)
-
-## Begrippen uit de les
-
-| Term | Betekenis |
-|------|-----------|
-| DLQ | Bericht na X pogingen apart zetten |
-| Idempotency | Dubbele verwerking = zelfde resultaat |
-| ACK/NACK | Consumer bevestigt verwerking |
+**Wat er nu speelt**
+- Berichten kunnen **meerdere keren** aankomen
+- Sommige berichten **blijven falen** en blokkeren verwerking
+- **Extern fraudedetectie SaaS** moet elke betaling kunnen zien
 
 ## Jouw opdracht — ADR 2
 
-Leg vast hoe je betrouwbaarheid borgt (poison messages, duplicaten) terwijl fraud SaaS events krijgt. Overwogen: onbeperkt retry, weggooien, DLQ + idempotency + ACK. **Bouwt voort op ADR 1.**`,
+Leg vast hoe je betrouwbaarheid borgt én fraudedetectie toegang geeft tot betalingsgegevens. **Bouwt voort op ADR 1.**`,
     uml: `flowchart LR
-    C[Checkout 1000/s]
-    Q[(RabbitMQ buffer)]
-    MF[Mainframe 10/s]
-    C --> Q --> MF`,
+    C[Checkout ~1000/s]
+    MF[Mainframe max 10/s]
+    C -->|sync| MF`,
     umlPart2: `flowchart LR
-    Q[(payment queue)]
-    C[Idempotente consumer]
-    DLQ[(dead-letter queue)]
+    Q[Betalingsverwerking]
     FR[Fraud SaaS extern]
-    Q --> C
-    C -->|poison na 3x| DLQ
-    C -->|event| FR`,
+    Q --> FR`,
   },
 };

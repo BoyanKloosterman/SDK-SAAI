@@ -502,6 +502,18 @@ const Grader = {
     return { score, correct: score >= 70, feedback, partResults, modelAnswer: q.modelAnswer };
   },
 
+  // Hoeveel alternatieven noemt de student zelf in Context?
+  scoreContextAlternatives(answer) {
+    const ctxMatch = answer.match(/##\s*context([\s\S]*?)(?=##\s*decision|$)/i);
+    const ctx = ctxMatch ? ctxMatch[1] : answer;
+    const altCue = /\b(alternatief|overwogen|optie|versus|vs\.|in plaats van|ofwel|niet gekozen)\b/gi;
+    const cueHits = (ctx.match(altCue) || []).length;
+    const bullets = (ctx.match(/^\s*[-*]|\n\s*\d+[.)]/g) || []).length;
+    if (cueHits >= 2 || bullets >= 2) return 2;
+    if (cueHits >= 1 || bullets >= 1) return 1;
+    return 0;
+  },
+
   // ADR: format (25) + context/alternatieven (15) + oplossingskwaliteit (40) + consequences (20)
   gradeAdr(q, answer) {
     const norm = this.normalize(answer);
@@ -536,21 +548,20 @@ const Grader = {
     const problemHits = (rubric.problemMustMention || []).filter((kw) => norm.includes(kw));
     if (problemHits.length > 0) {
       contextScore += 4;
-      feedback.push(`Context benoemt het kernprobleem (${problemHits.join(', ')}).`);
+      feedback.push('Context benoemt het kernprobleem uit de casus.');
     } else {
-      feedback.push('Context: beschrijf het concrete probleem (bijv. temporal coupling, offline legacy).');
+      feedback.push('Context: beschrijf het concrete probleem uit de casus.');
     }
 
-    const altExpected = rubric.alternativesExpected || [];
-    const altMentioned = altExpected.filter((alt) => norm.includes(alt));
-    if (altMentioned.length >= 2) {
+    const altLevel = this.scoreContextAlternatives(answer);
+    if (altLevel >= 2) {
       contextScore += 3;
-      feedback.push(`Alternatieven genoemd: ${altMentioned.join(', ')}.`);
-    } else if (altMentioned.length === 1) {
+      feedback.push('Context: meerdere opties overwogen.');
+    } else if (altLevel === 1) {
       contextScore += 1;
-      feedback.push('Noem minstens 2 overwogen alternatieven in Context.');
+      feedback.push('Context: noem minstens 2 overwogen alternatieven.');
     } else {
-      feedback.push('Context mist overwogen alternatieven — vergelijk opties vóór je Decision.');
+      feedback.push('Context: vergelijk minstens 2 opties vóór je Decision.');
     }
     contextScore = Math.min(15, contextScore);
 
@@ -603,10 +614,6 @@ const Grader = {
       solutionScore = Math.min(40, solutionScore + 2);
     }
 
-    if (rubric.bestSolution && solutionScore < 30) {
-      feedback.push(`Betere richting: ${rubric.bestSolution}`);
-    }
-
     // --- DECISION-STRUCTUUR (min. 2 beslissingen) ---
     const structure = this.validateAdrStructure(answer);
     if (structure.decisionCount >= 2) {
@@ -645,11 +652,11 @@ const Grader = {
       breakdown,
       solutionVerdict,
       modelAnswer: q.modelAnswer,
-      aiStyle: this.buildAdrFeedback(score, breakdown, solutionVerdict, feedback, rubric.bestSolution),
+      aiStyle: this.buildAdrFeedback(score, breakdown, solutionVerdict, feedback),
     };
   },
 
-  buildAdrFeedback(score, breakdown, verdict, feedback, bestSolution) {
+  buildAdrFeedback(score, breakdown, verdict, feedback) {
     let summary;
     if (score >= 85) summary = 'Sterke ADR — format én inhoudelijk passende oplossing.';
     else if (score >= 70) summary = 'Voldoende ADR. Kleine verbeteringen mogelijk.';
@@ -658,7 +665,6 @@ const Grader = {
 
     let text = `${summary}\n\nBeoordeling: ${breakdown}\nOplossingskwaliteit: ${verdict}\n\n`;
     text += feedback.join('\n');
-    if (bestSolution && score < 75) text += `\n\nAanbevolen richting: ${bestSolution}`;
     return text;
   },
 

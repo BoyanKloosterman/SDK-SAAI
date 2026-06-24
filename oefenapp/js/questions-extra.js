@@ -161,7 +161,7 @@ void go() { zzz(b, tmp); }`,
     parts: [
       {
         key: 'adr1', label: 'ADR 1', weight: 1, type: 'adr-write',
-        question: 'ADR 1 — Koppeling Order Service ↔ Legacy ERP\n\nHet ERP is \'s nachts offline (temporal coupling). Order Service roept nu synchroon REST aan; orders falen bij onderhoud. Overwogen: sync REST blijven, point-to-point RabbitMQ queue, of nachtelijke batch-export.\n\nLeg vast welke integratiebeslissing de kwaliteit van het bestaande ERP-landschap verhoogt.',
+        question: 'ADR 1 — Koppeling Order Service ↔ Legacy ERP\n\nLees de systeemcontext. Beschrijf het probleem, vergelijk opties en leg je beslissing vast.',
         rubric: {
           contextKeywords: ['legacy', 'erp', 'order', 'temporal', 'offline', 'sync', 'synchroon'],
           problemMustMention: ['temporal', 'offline', 'coupling', 'sync', 'synchroon', 'erp'],
@@ -179,7 +179,7 @@ void go() { zzz(b, tmp); }`,
       },
       {
         key: 'adr2', label: 'ADR 2', weight: 1, type: 'adr-write',
-        question: 'ADR 2 — OrderShipped informeren (intern + extern)\n\nNa verzending moeten Fulfillment SaaS (extern), magazijn-app én marketing worden geïnformeerd. Nu roept Order Service alles synchroon aan; nieuwe subscriber = Order Service aanpassen (behavioral coupling). Overwogen: meer P2P REST, point-to-point queues, of pub/sub exchange met OrderShipped event.\n\nLeg vast hoe je schaalbaar en losgekoppeld informeert — bouwt voort op ADR 1.',
+        question: 'ADR 2 — Informeren na verzending\n\nLees de systeemcontext (deel 2). Leg vast hoe je interne en externe partijen informeert na verzending. Bouwt voort op ADR 1.',
         rubric: {
           contextKeywords: ['order', 'shipped', 'extern', 'fulfillment', 'behavioral', 'pub', 'sub'],
           problemMustMention: ['behavioral', 'coupling', 'extern', 'sync', 'synchroon', 'subscriber'],

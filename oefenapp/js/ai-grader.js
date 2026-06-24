@@ -79,35 +79,23 @@ Geef ALLEEN geldig JSON, geen markdown:
   },
 
   buildAdrPrompt(question, userAnswer) {
-    const rubric = question.rubric || {};
     const sysCtx = question.systemContext || '';
-    const best = rubric.bestSolution || '';
-    const problem = (rubric.problemMustMention || []).join(', ');
-    const alts = (rubric.alternativesExpected || []).slice(0, 5).join(', ');
 
     const system = `Je bent examinator voor SDK & SAAI (Nederland). Beoordeel een Nygard ADR INHOUDELIJK én op verplichte structuur.
 
 HARD REQUIREMENTS (score max 65 als niet voldaan):
-1. ## Decision: minimaal 2 concrete beslissingen (aparte keuzes of implementatieregels, bijv. technologie + werkwijze)
+1. ## Decision: minimaal 2 concrete beslissingen (aparte keuzes of implementatieregels)
 2. ## Consequences: minimaal 1 voordeel met + en minimaal 1 nadeel met -
 3. Nygard-secties: titel (#), Status, Context, Decision, Consequences
-4. Context: kernprobleem + minimaal 2 overwogen alternatieven
+4. Context: kernprobleem uit de casus + minimaal 2 zelf gekozen alternatieven
 
-Beoordeel ook of de gekozen oplossing past bij het scenario (messaging & events les):
-- Temporal coupling (systemen moeten tegelijk online?) vs async queue
-- Behavioral coupling (producer kent alle consumers?) vs pub/sub exchange
-- Events: verleden tijd (GameEnded, OrderPlaced), thin vs fat
-- RabbitMQ: exchange, routing key, ACK/NACK, DLQ, idempotency, at-least-once
+Beoordeel of de gekozen oplossing past bij het scenario (integratie, messaging, losse koppeling).
+Geef de student punten voor eigen, onderbouwde keuzes — niet alleen voor het modelantwoord.
 
 Geef ALLEEN geldig JSON:
 {"score":0-100,"correct":true/false,"structureOk":true/false,"feedback":["max 6 punten NL"],"missing":["ontbreekt"],"strengths":["goed"]}`;
 
-    const user = `${sysCtx ? 'SYSTEEMCONTEXT:\n' + sysCtx + '\n\n' : ''}SCENARIO:\n${question.question}\n\n${problem ? 'KERNPROBLEEM MOET BENOEMD WORDEN: ' + problem + '\n' : ''}${alts ? 'VERWACHTE ALTERNATIEVEN IN CONTEXT: ' + alts + '\n' : ''}${best ? 'BESTE RICHTING (referentie): ' + best + '\n' : ''}
-MODELANTWOORD:\n${question.modelAnswer || ''}
-
-STUDENT-ADR:\n${userAnswer || '(leeg)'}
-
-Score 70+ alleen als structuur én inhoud voldoende zijn. Zet structureOk=false als Decision <2 beslissingen heeft of Consequences geen + én - heeft.`;
+    const user = `${sysCtx ? 'SYSTEEMCONTEXT:\n' + sysCtx + '\n\n' : ''}OPDRACHT:\n${question.question}\n\nREFERENTIE-MODELANTWOORD (niet verplicht om te volgen):\n${question.modelAnswer || ''}\n\nSTUDENT-ADR:\n${userAnswer || '(leeg)'}\n\nScore 70+ alleen als structuur én inhoud voldoende zijn. Zet structureOk=false als Decision <2 beslissingen heeft of Consequences geen + én - heeft.`;
 
     return { system, user, criteria: question.modelAnswer || '' };
   },
@@ -117,8 +105,7 @@ Score 70+ alleen als structuur én inhoud voldoende zijn. Zet structureOk=false 
     const isAdrCasus = question.examCasus && (question.parts || []).some((p) => p.type === 'adr-write');
     const parts = (question.parts || []).map((p) => {
       const ans = answers[p.key] || '(leeg)';
-      const rubricHint = p.rubric?.bestSolution ? `\nRubric: ${p.rubric.bestSolution}` : '';
-      return `--- ${p.label} (${p.type}) ---\nVraag: ${p.question}\nModel: ${p.modelAnswer || ''}${rubricHint}\nStudent: ${ans}`;
+      return `--- ${p.label} (${p.type}) ---\nVraag: ${p.question}\nStudent: ${ans}`;
     }).join('\n\n');
 
     const system = isAdrCasus

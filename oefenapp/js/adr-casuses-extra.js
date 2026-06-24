@@ -8,7 +8,7 @@ const ADR_CASUSES_EXTRA = [
     parts: [
       {
         key: 'adr1', label: 'ADR 1', weight: 1, type: 'adr-write',
-        question: 'ADR 1 — GameEnd() en leaderboard (temporal coupling)\n\nNa elke wedstrijd roept de game server synchroon UpdateLeaderboard aan (~30 sec). Bij 100 games/min en offline leaderboard crasht GameEnd(). Overwogen: sync blijven, point-to-point queue naar leaderboard, of batch.',
+        question: 'ADR 1 — GameEnd() en leaderboard\n\nLees de systeemcontext. Beschrijf het probleem, vergelijk opties en leg je beslissing vast.',
         rubric: {
           problemMustMention: ['temporal', 'coupling', 'sync', 'leaderboard', 'offline'],
           alternativesExpected: ['sync', 'queue', 'rabbitmq', 'batch', 'asynchroon'],
@@ -23,7 +23,7 @@ const ADR_CASUSES_EXTRA = [
       },
       {
         key: 'adr2', label: 'ADR 2', weight: 1, type: 'adr-write',
-        question: 'ADR 2 — NotifyViewers + email (behavioral coupling)\n\nGame server roept ook sync NotifyViewers en SendWinnerEmail (extern SaaS) aan. Nieuwe feature = game server aanpassen. Overwogen: meer sync calls, P2P queues per service, pub/sub exchange met GameEnded event.',
+        question: 'ADR 2 — Notify en email\n\nLees de systeemcontext (deel 2). Leg vast hoe je kijkers en externe partijen informeert na een wedstrijd. Bouwt voort op ADR 1.',
         rubric: {
           problemMustMention: ['behavioral', 'coupling', 'extern', 'subscriber'],
           alternativesExpected: ['sync', 'point', 'queue', 'pub', 'sub', 'exchange', 'gameended'],
@@ -48,7 +48,7 @@ const ADR_CASUSES_EXTRA = [
     parts: [
       {
         key: 'adr1', label: 'ADR 1', weight: 1, type: 'adr-write',
-        question: 'ADR 1 — Uitlening registreren in legacy (temporal coupling)\n\nWebshop roept synchroon legacy COBOL aan voor uitleningen. Legacy offline 02:00–06:00 → checkout faalt. Overwogen: sync REST, RabbitMQ queue, nachtelijke batch.',
+        question: 'ADR 1 — Uitlening registreren in legacy\n\nLees de systeemcontext. Beschrijf het probleem, vergelijk opties en leg je beslissing vast.',
         rubric: {
           problemMustMention: ['temporal', 'offline', 'coupling', 'legacy'],
           alternativesExpected: ['rest', 'sync', 'rabbitmq', 'queue', 'batch'],
@@ -63,7 +63,7 @@ const ADR_CASUSES_EXTRA = [
       },
       {
         key: 'adr2', label: 'ADR 2', weight: 1, type: 'adr-write',
-        question: 'ADR 2 — Betaling + bevestiging (extern platform + intern magazijn)\n\nNa reservering moeten extern betalingsplatform én intern magazijn synchroon worden aangeroepen. Overwogen: sync keten, P2P queues, pub/sub met LoanReserved event.',
+        question: 'ADR 2 — Betaling en magazijn na reservering\n\nLees de systeemcontext (deel 2). Leg vast hoe je betaling en magazijn aanstuurt. Bouwt voort op ADR 1.',
         rubric: {
           problemMustMention: ['behavioral', 'extern', 'coupling', 'sync'],
           alternativesExpected: ['sync', 'queue', 'pub', 'sub', 'loanreserved', 'event'],
@@ -89,7 +89,7 @@ const ADR_CASUSES_EXTRA = [
     parts: [
       {
         key: 'adr1', label: 'ADR 1', weight: 1, type: 'adr-write',
-        question: 'ADR 1 — Black Friday piek (performance)\n\nMainframe max 10 req/s, checkout verwacht 1000/s. Sync overload + retry storms. Overwogen: sync retry, queue + throttling, competing consumers zonder limiet.',
+        question: 'ADR 1 — Black Friday piek\n\nLees de systeemcontext. Beschrijf het probleem, vergelijk opties en leg je beslissing vast.',
         rubric: {
           problemMustMention: ['10', 'piek', '1000', 'overload', 'retry'],
           alternativesExpected: ['retry', 'queue', 'throttl', 'rabbitmq'],
@@ -104,7 +104,7 @@ const ADR_CASUSES_EXTRA = [
       },
       {
         key: 'adr2', label: 'ADR 2', weight: 1, type: 'adr-write',
-        question: 'ADR 2 — Betrouwbaarheid + fraudedetectie (ACK, idempotency)\n\nNa ADR 1: at-least-once delivery, duplicaten en poison messages mogelijk. Extern fraud SaaS moet elke betaling zien. Overwogen: onbeperkt retry, bericht weggooien, DLQ + idempotente consumer + ACK.',
+        question: 'ADR 2 — Betrouwbaarheid en fraudedetectie\n\nLees de systeemcontext (deel 2). Leg vast hoe je betrouwbaarheid borgt en fraudedetectie toegang geeft. Bouwt voort op ADR 1.',
         rubric: {
           problemMustMention: ['at-least', 'idempot', 'poison', 'duplicaat', 'ack'],
           alternativesExpected: ['dlq', 'dead-letter', 'idempot', 'ack', 'nack'],
