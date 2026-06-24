@@ -1,13 +1,20 @@
 // AI-beoordeling — Gemini of OpenAI, met rate limiting tegen 429
+const AI_GRADER_VERSION = '4';
+
 const AiGrader = {
+  VERSION: AI_GRADER_VERSION,
   KEY_STORAGE: 'saai-ai-key',
   PROVIDER_STORAGE: 'saai-ai-provider',
   LEGACY_KEY: 'saai-openai-key',
   MIN_INTERVAL_MS: 6000,
   lastCallAt: 0,
 
-  // Actuele modellen (geen gemini-1.5-flash — geeft 404)
-  GEMINI_MODELS: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'],
+  // Primair + fallbacks (geen gemini-1.5-flash — geeft 404)
+  GEMINI_MODEL: 'gemini-3.5-flash',
+  GEMINI_FALLBACK_MODELS: ['gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-2.0-flash'],
+  get GEMINI_MODELS() {
+    return [this.GEMINI_MODEL, ...this.GEMINI_FALLBACK_MODELS];
+  },
 
   getProvider() {
     const saved = localStorage.getItem(this.PROVIDER_STORAGE);
@@ -164,6 +171,54 @@ Geef ALLEEN JSON:
     return status === 404 || /not found|not supported for generatecontent/i.test(errText || '');
   },
 
+  // 503/overload — volgend model proberen i.p.v. direct stoppen
+  isModelUnavailable(status, errText) {
+    const code = Number(status);
+    return code === 503 || code === 502 || code === 500
+      || /experiencing high|overloaded|unavailable|try again later/i.test(errText || '');
+  },
+
+  shouldTryNextGeminiModel(err) {
+    return !!(err?.isNotFound || err?.isUnavailable || this.isModelUnavailable(err?.status, err?.message));
+  },
+
+  geminiFailureMessage(failures) {
+    const tried = failures.map((f) => f.model).join(', ');
+    const last = failures[failures.length - 1];
+    if (last && this.isModelUnavailable(last.status, last.message)) {
+      return `Alle Gemini-modellen overbelast (geprobeerd: ${tried}). Probeer over een paar minuten opnieuw.`;
+    }
+    if (last?.isNotFound) {
+      return `Geen werkend Gemini-model (geprobeerd: ${tried}). Controleer je key in Google AI Studio.`;
+    }
+    return last?.message || 'Gemini niet bereikbaar';
+  },
+
+  async callGeminiModels(key, system, user, { skipRateLimit = false, rateLimitRetries = 1 } = {}) {
+    const failures = [];
+
+    for (const model of this.GEMINI_MODELS) {
+      for (let attempt = 0; attempt <= rateLimitRetries; attempt++) {
+        if (!skipRateLimit) await this.waitForRateLimit();
+        try {
+          const result = await this.callGemini(key, system, user, model);
+          this.activeModel = model;
+          return { result, model, failures };
+        } catch (err) {
+          failures.push({ model, status: err.status, message: err.message, isNotFound: err.isNotFound });
+          if (this.shouldTryNextGeminiModel(err)) break;
+          if (err.isRateLimit && attempt < rateLimitRetries) {
+            await new Promise((r) => setTimeout(r, 10000));
+            continue;
+          }
+          throw new Error(this.formatApiError(Number(err.status), err.message, 'Gemini'));
+        }
+      }
+    }
+
+    throw new Error(this.geminiFailureMessage(failures));
+  },
+
   async callGemini(key, system, user, model) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
 
@@ -184,6 +239,7 @@ Geef ALLEEN JSON:
       err.model = model;
       err.isRateLimit = this.isRateLimitError(res.status, errText);
       err.isNotFound = this.isModelNotFound(res.status, errText);
+      err.isUnavailable = this.isModelUnavailable(res.status, errText);
       throw err;
     }
 
@@ -192,27 +248,8 @@ Geef ALLEEN JSON:
   },
 
   async callGeminiWithRetry(key, system, user) {
-    let lastErr;
-
-    for (const model of this.GEMINI_MODELS) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        await this.waitForRateLimit();
-        try {
-          const result = await this.callGemini(key, system, user, model);
-          this.activeModel = model;
-          return result;
-        } catch (err) {
-          lastErr = err;
-          if (err.isNotFound) break; // volgend model proberen
-          if (err.isRateLimit && attempt === 0) {
-            await new Promise((r) => setTimeout(r, 10000));
-            continue;
-          }
-          break;
-        }
-      }
-    }
-    throw lastErr || new Error('Geen werkend Gemini-model gevonden');
+    const { result } = await this.callGeminiModels(key, system, user);
+    return result;
   },
 
   async callOpenAI(key, system, user) {
@@ -305,7 +342,10 @@ Geef ALLEEN JSON:
     if (!this.hasKey()) return 'Alleen lokale beoordeling';
     const p = this.getProvider() === 'gemini' ? 'Gemini' : 'OpenAI';
     const m = this.activeModel ? ` (${this.activeModel})` : '';
-    return `AI actief (${p}${m})`;
+    const plan = this.getProvider() === 'gemini'
+      ? ` · ${this.GEMINI_MODEL} → ${this.GEMINI_FALLBACK_MODELS[0]}`
+      : '';
+    return `AI actief (${p}${m})${plan} · v${this.VERSION}`;
   },
 
   // Snelle test — probeert modellen tot er een werkt, geen lange retries
@@ -347,30 +387,18 @@ Geef ALLEEN JSON:
       };
     }
 
-    // Gemini: elk model 1x proberen, geen 6s wachten bij test
-    let lastErr;
-    for (const model of this.GEMINI_MODELS) {
-      try {
-        const parsed = await this.callGemini(k, system, user, model);
-        this.activeModel = model;
-        this.lastCallAt = Date.now();
-        return {
-          ok: true,
-          provider: 'Gemini',
-          model,
-          message: parsed.message || 'Verbinding OK',
-          responseTime: Date.now() - start,
-        };
-      } catch (err) {
-        lastErr = err;
-        if (!err.isNotFound) throw new Error(this.formatApiError(err.status, err.message, 'Gemini'));
-      }
-    }
-    throw new Error(
-      lastErr?.isNotFound
-        ? 'Geen werkend Gemini-model. Controleer je key in Google AI Studio.'
-        : (lastErr?.message || 'Gemini niet bereikbaar')
-    );
+    const { result, model, failures } = await this.callGeminiModels(k, system, user, { skipRateLimit: true });
+    this.lastCallAt = Date.now();
+    const fallbackNote = failures.length
+      ? ` (fallback na ${failures.map((f) => f.model).join(', ')})`
+      : '';
+    return {
+      ok: true,
+      provider: 'Gemini',
+      model,
+      message: (result.message || 'Verbinding OK') + fallbackNote,
+      responseTime: Date.now() - start,
+    };
   },
 
   formatApiError(status, errText, provider) {
@@ -379,6 +407,9 @@ Geef ALLEEN JSON:
     }
     if (status === 404) {
       return '404 Model niet gevonden — app probeert automatisch een ander model.';
+    }
+    if (status === 503 || status === 502) {
+      return '503 Model tijdelijk overbelast — app probeert automatisch een fallback-model.';
     }
     if (status === 400 && /API key not valid|invalid|API_KEY_INVALID/i.test(errText)) {
       return 'Ongeldige API-key — kopieer opnieuw van aistudio.google.com/apikey';

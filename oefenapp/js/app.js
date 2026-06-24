@@ -147,7 +147,7 @@ const App = {
 
       <section class="settings">
         <h3>AI-beoordeling (optioneel)</h3>
-        <p class="hint">Inhoudelijke feedback op open vragen. Gemini free tier: max ~15 requests/min — app wacht 6 sec tussen calls. Bij 429: lokale checker als fallback.</p>
+        <p class="hint">Inhoudelijke feedback op open vragen. Gemini: ${typeof AiGrader !== 'undefined' ? AiGrader.GEMINI_MODEL + ' met fallback naar ' + AiGrader.GEMINI_FALLBACK_MODELS[0] : 'gemini-3.5-flash'}. Bij 503/429: automatisch fallback of lokale checker.</p>
         <div class="api-key-row">
           <select id="api-provider" class="api-provider-select">
             <option value="gemini" ${typeof AiGrader !== 'undefined' && AiGrader.getProvider() === 'gemini' ? 'selected' : ''}>Gemini</option>
@@ -787,6 +787,12 @@ Proposed
       alert('AI-module niet geladen.');
       return;
     }
+    if (AiGrader.VERSION !== '4') {
+      resultEl.classList.remove('hidden');
+      resultEl.className = 'api-test-result fail';
+      resultEl.innerHTML = '<strong>Verouderde versie geladen</strong><br>Druk <strong>Ctrl+Shift+R</strong> (harde refresh) en test opnieuw.';
+      return;
+    }
 
     const provider = providerSel?.value || 'gemini';
     const key = keyInput?.value || '';
@@ -803,7 +809,7 @@ Proposed
     try {
       const res = await AiGrader.testConnection(provider, key);
       resultEl.classList.add('ok');
-      resultEl.innerHTML = `<strong>API werkt</strong> (${res.provider}, ${res.responseTime} ms)<br>${this.escapeHtml(res.message)}`;
+      resultEl.innerHTML = `<strong>API werkt</strong> (${res.provider}, ${res.model}, ${res.responseTime} ms)<br>${this.escapeHtml(res.message)}`;
       document.getElementById('ai-status').textContent = AiGrader.statusLabel();
     } catch (err) {
       resultEl.classList.add('fail');
