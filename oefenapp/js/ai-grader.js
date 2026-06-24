@@ -1,5 +1,5 @@
 // AI-beoordeling — Gemini of OpenAI, met rate limiting tegen 429
-const AI_GRADER_VERSION = '4';
+const AI_GRADER_VERSION = '5';
 
 const AiGrader = {
   VERSION: AI_GRADER_VERSION,
@@ -7,6 +7,7 @@ const AiGrader = {
   PROVIDER_STORAGE: 'saai-ai-provider',
   LEGACY_KEY: 'saai-openai-key',
   MIN_INTERVAL_MS: 6000,
+  ADR_INTERVAL_MS: 12000,
   lastCallAt: 0,
 
   // Primair + fallbacks (geen gemini-1.5-flash — geeft 404)
@@ -51,9 +52,10 @@ const AiGrader = {
     }
   },
 
-  async waitForRateLimit() {
+  async waitForRateLimit(intervalMs) {
+    const gap = intervalMs || this.MIN_INTERVAL_MS;
     const now = Date.now();
-    const wait = this.MIN_INTERVAL_MS - (now - this.lastCallAt);
+    const wait = gap - (now - this.lastCallAt);
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     this.lastCallAt = Date.now();
   },
@@ -208,7 +210,7 @@ Geef ALLEEN JSON:
           failures.push({ model, status: err.status, message: err.message, isNotFound: err.isNotFound });
           if (this.shouldTryNextGeminiModel(err)) break;
           if (err.isRateLimit && attempt < rateLimitRetries) {
-            await new Promise((r) => setTimeout(r, 10000));
+            await new Promise((r) => setTimeout(r, 30000));
             continue;
           }
           throw new Error(this.formatApiError(Number(err.status), err.message, 'Gemini'));
@@ -252,8 +254,8 @@ Geef ALLEEN JSON:
     return result;
   },
 
-  async callOpenAI(key, system, user) {
-    await this.waitForRateLimit();
+  async callOpenAI(key, system, user, { skipRateLimit = false } = {}) {
+    if (!skipRateLimit) await this.waitForRateLimit();
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
@@ -291,8 +293,11 @@ Geef ALLEEN JSON:
   },
 
   async gradeAdr(question, userAnswer) {
+    await this.waitForRateLimit(this.ADR_INTERVAL_MS);
     const { system, user, criteria } = this.buildAdrPrompt(question, userAnswer);
-    const parsed = await this.callApi(system, user);
+    const parsed = this.getProvider() === 'openai'
+      ? await this.callOpenAI(this.getKey(), system, user, { skipRateLimit: true })
+      : (await this.callGeminiModels(this.getKey(), system, user, { skipRateLimit: true, rateLimitRetries: 2 })).result;
     const result = this.parseResult(parsed, criteria);
     result.aiReviewed = true;
     if (parsed.structureOk === false) {

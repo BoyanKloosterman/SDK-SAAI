@@ -147,7 +147,7 @@ const App = {
 
       <section class="settings">
         <h3>AI-beoordeling (optioneel)</h3>
-        <p class="hint">Inhoudelijke feedback op open vragen. Gemini: ${typeof AiGrader !== 'undefined' ? AiGrader.GEMINI_MODEL + ' met fallback naar ' + AiGrader.GEMINI_FALLBACK_MODELS[0] : 'gemini-3.5-flash'}. Bij 503/429: automatisch fallback of lokale checker.</p>
+        <p class="hint">Inhoudelijke feedback op open vragen. Gemini: ${typeof AiGrader !== 'undefined' ? AiGrader.GEMINI_MODEL + ' met fallback naar ' + AiGrader.GEMINI_FALLBACK_MODELS[0] : 'gemini-3.5-flash'}. ADR-casussen: per ADR apart beoordeeld (${typeof AiGrader !== 'undefined' ? AiGrader.ADR_INTERVAL_MS / 1000 : 12}s tussen calls). Bij 429: lokale fallback per deel.</p>
         <div class="api-key-row">
           <select id="api-provider" class="api-provider-select">
             <option value="gemini" ${typeof AiGrader !== 'undefined' && AiGrader.getProvider() === 'gemini' ? 'selected' : ''}>Gemini</option>
@@ -323,9 +323,15 @@ const App = {
     this.bindAnswerEvents(q);
 
     document.getElementById('btn-prev').disabled = this.state.currentIndex === 0 && casusStep === 1;
-    const hideCheck = (this.isMcqType(q.type) && this.state.showFeedback)
-      || (inCasusFlow && casusStep === 1);
-    document.getElementById('btn-check').classList.toggle('hidden', hideCheck);
+    const hideCheck = this.isMcqType(q.type) && this.state.showFeedback;
+    const checkBtn = document.getElementById('btn-check');
+    checkBtn.classList.toggle('hidden', hideCheck);
+    if (inCasusFlow) {
+      const part = this.getCasusAdrPart(q, casusStep);
+      checkBtn.textContent = part ? `Controleer ${part.label}` : 'Controleer antwoord';
+    } else {
+      checkBtn.textContent = 'Controleer antwoord';
+    }
     document.getElementById('btn-next').textContent = inCasusFlow && casusStep === 1
       ? 'Deel 2 →'
       : (this.state.currentIndex === this.state.questions.length - 1 ? 'Resultaten' : 'Volgende');
@@ -558,6 +564,38 @@ Proposed
     const q = this.state.questions[this.state.currentIndex];
     const answer = this.getAnswer(q);
 
+    // ADR-casus: per stap één ADR beoordelen (minder 429, snellere feedback)
+    if (this.isAdrCasusFlow(q)) {
+      const step = this.state.casusStep || 1;
+      const part = this.getCasusAdrPart(q, step);
+      if (!part || !(answer[part.key] || '').trim()) {
+        alert(`Vul ${part?.label || 'ADR'} eerst in.`);
+        return;
+      }
+
+      const btn = document.getElementById('btn-check');
+      const oldLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = typeof AiGrader !== 'undefined' && AiGrader.hasKey()
+        ? `AI beoordeelt ${part.label}...` : 'Bezig...';
+
+      try {
+        const partResult = await Grader.gradeCasusAdrPart(q, part.key, answer[part.key]);
+        const existing = this.state.results[q.id] || {};
+        const partResults = { ...(existing.partResults || {}), [part.key]: partResult };
+        const merged = Grader.mergeMultiPartResults(q, partResults);
+        this.state.results[q.id] = merged;
+        this.state.showFeedback = true;
+        if (!merged.partial) this.state.progress[q.id] = merged.score;
+        this.saveProgress();
+        this.renderQuestion();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldLabel;
+      }
+      return;
+    }
+
     if (q.type === 'open-multi') {
       const empty = (q.parts || []).filter((p) => !(answer[p.key] || '').trim());
       if (empty.length) { alert(`Vul alle deelvragen in (${empty.map((p) => p.label).join(', ')}).`); return; }
@@ -600,6 +638,9 @@ Proposed
 
     if (result.partResults && q.parts) {
       html += '<div class="part-results">';
+      if (result.partial) {
+        html += '<p class="hint">Deelscore — beoordeel elk ADR apart. Ga naar deel 2 voor de tweede ADR.</p>';
+      }
       q.parts.forEach((part) => {
         const pr = result.partResults[part.key];
         if (!pr) return;
@@ -788,7 +829,7 @@ Proposed
       alert('AI-module niet geladen.');
       return;
     }
-    if (AiGrader.VERSION !== '4') {
+    if (AiGrader.VERSION !== '5') {
       resultEl.classList.remove('hidden');
       resultEl.className = 'api-test-result fail';
       resultEl.innerHTML = '<strong>Verouderde versie geladen</strong><br>Druk <strong>Ctrl+Shift+R</strong> (harde refresh) en test opnieuw.';

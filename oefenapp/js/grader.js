@@ -357,6 +357,64 @@ const Grader = {
     };
   },
 
+  // Juiste casuscontext per ADR-deel (deel 2 = kortere context, minder tokens)
+  getAdrPartQuestion(q, part) {
+    const parts = (q.parts || []).filter((p) => p.type === 'adr-write');
+    const idx = parts.findIndex((p) => p.key === part.key);
+    const ctx = idx === 1 && q.systemContextPart2 ? q.systemContextPart2 : (q.systemContext || part.systemContext);
+    return { ...part, question: part.question, systemContext: ctx };
+  },
+
+  mergeMultiPartResults(q, partResults) {
+    const parts = q.parts || [];
+    const feedback = [];
+    let total = 0;
+    let maxW = 0;
+    parts.forEach((part) => {
+      const pr = partResults[part.key];
+      if (!pr) return;
+      maxW += part.weight || 1;
+      total += (pr.score / 100) * (part.weight || 1);
+      feedback.push(`${part.label}: ${pr.score}%${pr.aiReviewed ? ' [AI]' : ''}`);
+    });
+    const score = maxW ? Math.round((total / maxW) * 100) : 0;
+    const graded = parts.filter((p) => partResults[p.key]).length;
+    return {
+      score,
+      correct: score >= 70,
+      feedback: feedback.length ? feedback : ['Nog geen deelvragen beoordeeld.'],
+      partResults,
+      modelAnswer: q.modelAnswer,
+      aiReviewed: parts.some((p) => partResults[p.key]?.aiReviewed),
+      partial: graded > 0 && graded < parts.length,
+    };
+  },
+
+  async gradeAdrPartAi(q, part, answer) {
+    const partQ = this.getAdrPartQuestion(q, part);
+    try {
+      if (typeof AiGrader !== 'undefined' && AiGrader.hasKey()) {
+        let result = await AiGrader.gradeAdr(partQ, answer);
+        result = this.applyAdrStructureToResult(result, answer);
+        result.aiReviewed = true;
+        return { ...result, modelAnswer: part.modelAnswer };
+      }
+    } catch (err) {
+      const local = this.gradeAdr(partQ, answer);
+      local.feedback.unshift(`AI niet beschikbaar (${err.message}) — lokale beoordeling:`);
+      local.aiReviewed = false;
+      return { ...local, modelAnswer: part.modelAnswer };
+    }
+    const local = this.gradeAdr(partQ, answer);
+    return { ...local, modelAnswer: part.modelAnswer };
+  },
+
+  async gradeCasusAdrPart(q, partKey, answer) {
+    const part = (q.parts || []).find((p) => p.key === partKey);
+    if (!part) throw new Error('Onbekend ADR-deel');
+    return this.gradeAdrPartAi(q, part, answer);
+  },
+
   gradePart(part, answer) {
     if (part.type === 'open-identify') return this.gradeOpenIdentify(part, answer);
     if (part.type === 'adr-write') return this.gradeAdr(part, answer);
@@ -401,37 +459,14 @@ const Grader = {
     const parts = q.parts || [];
     const allAdr = parts.length > 0 && parts.every((p) => p.type === 'adr-write');
 
-    // Casus met alleen ADR-deelvragen: per ADR apart beoordelen (betere rubric)
+    // ADR-casus: per ADR apart, bij 429 doorgaan met lokale fallback voor dat deel
     if (allAdr && typeof AiGrader !== 'undefined' && AiGrader.hasKey()) {
       const partResults = {};
-      const feedback = [];
-      let total = 0;
-      let maxW = 0;
-      try {
-        for (const part of parts) {
-          const ans = (answers && answers[part.key]) || '';
-          const partQ = { ...part, question: part.question, systemContext: q.systemContext || part.systemContext };
-          let result = await AiGrader.gradeAdr(partQ, ans);
-          result = this.applyAdrStructureToResult(result, ans);
-          partResults[part.key] = { ...result, aiReviewed: true, modelAnswer: part.modelAnswer };
-          maxW += part.weight || 1;
-          total += (result.score / 100) * (part.weight || 1);
-          feedback.push(`${part.label}: ${result.score}% [AI]`);
-        }
-        const score = maxW ? Math.round((total / maxW) * 100) : 0;
-        return {
-          score,
-          correct: score >= 70,
-          feedback,
-          partResults,
-          modelAnswer: q.modelAnswer,
-          aiReviewed: true,
-        };
-      } catch (err) {
-        const local = this.gradeOpenMulti(q, answers);
-        local.feedback.unshift(`AI: ${err.message} — lokale beoordeling`);
-        return local;
+      for (const part of parts) {
+        const ans = (answers && answers[part.key]) || '';
+        partResults[part.key] = await this.gradeAdrPartAi(q, part, ans);
       }
+      return this.mergeMultiPartResults(q, partResults);
     }
 
     // Overige open-multi: één batch API-call
